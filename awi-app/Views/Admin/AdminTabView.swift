@@ -1,3 +1,11 @@
+//
+//  AdminTabView.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
+
+
 import SwiftUI
 
 struct AdminTabView: View {

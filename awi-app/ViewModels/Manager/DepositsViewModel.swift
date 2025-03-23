@@ -1,3 +1,11 @@
+//
+//  DepositsViewModel.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
+
+
 import SwiftUI
 
 class DepositsViewModel: ObservableObject {

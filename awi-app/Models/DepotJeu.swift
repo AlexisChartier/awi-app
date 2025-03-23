@@ -1,3 +1,11 @@
+//
+//  DepotJeu.swift
+//  awi-app
+//
+//  Created by etud on 15/03/2025.
+//
+
+
 import Foundation
 
 /// statut ∈ {"en vente", "vendu", "retiré"}

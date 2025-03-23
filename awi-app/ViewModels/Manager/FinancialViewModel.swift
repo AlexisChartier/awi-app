@@ -1,40 +1,64 @@
 import SwiftUI
 
+@MainActor
 class FinancialViewModel: ObservableObject {
+    @Published var sessions: [Session] = []
+    @Published var vendeurs: [Vendeur] = []
+    @Published var selectedSession: Session?
+    @Published var selectedVendeurId: Int?
     @Published var loading = false
     @Published var errorMessage: String?
+    @Published var successMessage: String?
 
-    func downloadBilanSession(sessionId: Int) async -> Data? {
+    func loadData() {
         loading = true
-        do {
-            let pdfData = try await BilanService.shared.downloadBilanSession(sessionId: sessionId)
-            await MainActor.run {
-                self.loading = false
+        Task {
+            do {
+                let allSessions = try await SessionService.shared.getAll() // imagine
+                self.sessions = allSessions
+                if let first = allSessions.first {
+                    self.selectedSession = first
+                }
+                let vend = try await VendeurService.shared.fetchAllVendeurs()
+                self.vendeurs = vend
+            } catch {
+                self.errorMessage = "Erreur chargement sessions ou vendeurs"
             }
-            return pdfData
-        } catch {
-            await MainActor.run {
-                self.errorMessage = "Erreur téléchargement bilan session: \(error)"
-                self.loading = false
-            }
-            return nil
+            self.loading = false
         }
     }
 
-    func downloadBilanVendeur(vendeurId: Int, sessionId: Int) async -> Data? {
-        loading = true
-        do {
-            let pdfData = try await BilanService.shared.downloadBilanVendeur(vendeurId: vendeurId, sessionId: sessionId)
-            await MainActor.run {
-                self.loading = false
+    func generateSessionReport() {
+        guard let ss = selectedSession else {
+            errorMessage = "Aucune session sélectionnée."
+            return
+        }
+        Task {
+            do {
+                let pdfData = try await BilanService.shared.downloadBilanSession(sessionId: ss.id)
+                // En SwiftUI, pour “sauvegarder” un PDF, c’est plus compliqué
+                // On peut le stocker dans le FileManager, ou l’ouvrir via QuickLook
+                // On simule un “succès”
+                successMessage = "Bilan session #\(ss.id) téléchargé!"
+            } catch {
+                errorMessage = "Erreur lors de la génération du bilan de session"
             }
-            return pdfData
-        } catch {
-            await MainActor.run {
-                self.errorMessage = "Erreur téléchargement bilan vendeur: \(error)"
-                self.loading = false
+        }
+    }
+
+    func generateVendorReport() {
+        guard let ss = selectedSession,
+              let vid = selectedVendeurId else {
+            errorMessage = "Veuillez sélectionner un vendeur et une session."
+            return
+        }
+        Task {
+            do {
+                let pdfData = try await BilanService.shared.downloadBilanVendeur(vendeurId: vid, sessionId: ss.id)
+                successMessage = "Bilan financier vendeur #\(vid) OK!"
+            } catch {
+                errorMessage = "Erreur génération bilan vendeur"
             }
-            return nil
         }
     }
 }

@@ -1,55 +1,48 @@
 import SwiftUI
-import Combine
 
 class AuthViewModel: ObservableObject {
-    @Published var isAuthenticated: Bool = false
-    @Published var userRole: String? = nil
+    @Published var isAuthenticated = false
+    @Published var userRole: UserRole?
     @Published var login: String = ""
     @Published var password: String = ""
-    @Published var errorMessage: String? = nil
-
-    // Ex. si vous stockez un user complet :
-    // @Published var currentUser: Utilisateur?
-
-    private var cancellables = Set<AnyCancellable>()
-
-    init() {
-        // Optionnel : restaurer un token depuis le Keychain / UserDefaults
-        // si Api.shared.authToken existe, tenter un check
-        if let token = Api.shared.authToken {
-            // On considère qu'on est potentiellement connecté.
-            // On peut faire un test sur le back-end, ex: verifyToken
-            isAuthenticated = true
-            // Récupérer le rôle depuis un endpoint si besoin
-            // userRole = ...
-        }
-    }
+    @Published var errorMessage: String?
+    @Published var isLoading: Bool = false   // ✅ Suivi de chargement
 
     func loginAction() {
+        isLoading = true  // ✅ Démarrage du chargement
         Task {
+            let creds = LoginCredentials(login: login, mot_de_passe: password)
             do {
-                try await AuthService.shared.login(username: login, password: password)
-                // Si le login est OK :
-                self.isAuthenticated = true
-                // Récupérer le rôle par un endpoint ou stocké dans la réponse du login
-                // Par exemple:
-                // let user = try await UserService.shared.getMe() 
-                // self.userRole = user.role
-                // self.currentUser = user
-                // Pour l’exemple, on met un "manager" en dur 
-                self.userRole = "manager" 
+                let authResp = try await AuthService.shared.login(credentials: creds)
+                await MainActor.run {
+                    self.isAuthenticated = true
+                    self.userRole = authResp.utilisateur.role
+                    self.errorMessage = nil
+                }
             } catch {
                 await MainActor.run {
-                    self.errorMessage = "Impossible de se connecter"
+                    self.errorMessage = "Erreur de connexion"
                 }
+            }
+            await MainActor.run {
+                self.isLoading = false // ✅ Fin du chargement
             }
         }
     }
 
-    func logout() {
+    func logoutAction() {
         AuthService.shared.logout()
-        self.isAuthenticated = false
-        self.userRole = nil
-        // self.currentUser = nil
+        isAuthenticated = false
+        userRole = nil
+    }
+
+    func checkTokenIfNeeded() {
+        Task {
+            let valid = await AuthService.shared.checkToken()
+            await MainActor.run {
+                self.isAuthenticated = valid
+                // Possibilité de charger le user si valide
+            }
+        }
     }
 }

@@ -9,9 +9,14 @@ import SwiftUI
 
 @main
 struct awi_appApp: App {
-    var body: some Scene {
-        WindowGroup {
-            ContentView()
+    @StateObject var authVM = AuthViewModel()
+
+        var body: some Scene {
+            WindowGroup {
+                /// On affiche une vue racine RootView
+                /// qui décide où aller selon isAuthenticated, userRole, etc.
+                RootView()
+                    .environmentObject(authVM)
+            }
         }
     }
-}

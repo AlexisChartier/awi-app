@@ -1,13 +1,21 @@
+//
+//  GameSaleViewModel.swift
+//  awi-app
+//
+//  Created by etud on 19/03/2025.
+//
+
+
 import SwiftUI
 
 @MainActor
 class GameSaleViewModel: ObservableObject {
-    @Published var sessionActive: SessionAWI?
-    @Published var depotsEnVente: [DepotJeu] = []
+    @Published var sessionActive: Session?
+    @Published var depotsEnVente: [DepotJeuRequest] = []
     @Published var allGames: [Jeu] = []
     @Published var allVendors: [Vendeur] = []
 
-    @Published var cart: [DepotJeu] = []
+    @Published var cart: [DepotJeuRequest] = []
     @Published var commissionRate: Double = 0
 
     @Published var filterVendorId: Int?
@@ -36,21 +44,22 @@ class GameSaleViewModel: ObservableObject {
                 self.sessionActive = sActive
                 if let sess = sActive {
                     self.commissionRate = sess.commissionRate
-                    let depots = try await DepotJeuService.shared.getDepotsSessions(sess.id)
+                    let depots = try await DepotJeuService.shared.getDepotsSessions(sessionId: sess.id)
                     self.depotsEnVente = depots.filter { $0.statut == "en vente" }
                 }
-                let games = try await GameService.shared.getAll()
+                let games = try await JeuService.shared.getAllJeux()
                 self.allGames = games
                 let vend = try await VendeurService.shared.fetchAllVendeurs()
                 self.allVendors = vend
             } catch {
                 self.errorMessage = "Erreur chargement data"
+                print(error)
             }
             self.loading = false
         }
     }
 
-    var filteredDepots: [DepotJeu] {
+    var filteredDepots: [DepotJeuRequest] {
         depotsEnVente.filter { d in
             if let vid = filterVendorId, vid != d.vendeur_id { return false }
             if !filterGameName.isEmpty {
@@ -67,7 +76,7 @@ class GameSaleViewModel: ObservableObject {
         }
     }
 
-    var sortedDepots: [DepotJeu] {
+    var sortedDepots: [DepotJeuRequest] {
         guard let p = priceSort else { return filteredDepots }
         return filteredDepots.sorted {
             if p {
@@ -78,26 +87,26 @@ class GameSaleViewModel: ObservableObject {
         }
     }
 
-    func addToCart(_ depot: DepotJeu) {
+    func addToCart(_ depot: DepotJeuRequest) {
         cart.append(depot)
-        depotsEnVente.removeAll { $0.id == depot.id }
+        depotsEnVente.removeAll { $0.depot_jeu_id == depot.depot_jeu_id }
     }
 
-    func removeFromCart(_ depot: DepotJeu) {
-        cart.removeAll { $0.id == depot.id }
+    func removeFromCart(_ depot: DepotJeuRequest) {
+        cart.removeAll { $0.depot_jeu_id == depot.depot_jeu_id }
         depotsEnVente.append(depot)
     }
 
     var totalSalePrice: Double {
-        cart.reduce(0) { $0 + $1.prix_vente }
+        cart.reduce(into: 0) { $0 + $1.prix_vente }
     }
 
-    func generateBarcode(_ depot: DepotJeu) {
+    func generateBarcode(_ depot: DepotJeuRequest) {
         Task {
             do {
-                let updated = try await DepotJeuService.shared.genererIdentifiantUnique(depot.id!)
+                let updated = try await DepotJeuService.shared.genererIdentifiantUnique(depotId: depot.depot_jeu_id!)
                 // Màj dans depotsEnVente
-                if let idx = depotsEnVente.firstIndex(where: { $0.id == depot.id }) {
+                if let idx = depotsEnVente.firstIndex(where: { $0.depot_jeu_id == depot.depot_jeu_id }) {
                     depotsEnVente[idx] = updated
                 }
             } catch {
@@ -122,22 +131,22 @@ class GameSaleViewModel: ObservableObject {
         }
         Task {
             do {
-                let vente = Vente(
+                //let vente = try VenteRequest(
                     // acheteur_id => needInvoice ? selectedBuyerId : nil
-                    acheteur_id: needInvoice ? selectedBuyerId : nil,
-                    montant_total: totalSalePrice,
-                    session_id: sess.id
-                )
+                    //acheteur_id: needInvoice ? selectedBuyerId : nil,
+                    //montant_total: totalSalePrice,
+                    //session_id: sess.id
+                    //from: <#any Decoder#>)
                 // On suppose qu’on a un struct “VenteJeuRequest”
                 let details = cart.map { d in
                     VenteJeuRequest(
-                        depot_jeu_id: d.id,
+                        vente_id: nil, depot_jeu_id: d.depot_jeu_id,
                         prix_vente: d.prix_vente,
                         commission: d.prix_vente * (commissionRate / 100.0)
                     )
                 }
-                let final = try await SaleService.shared.finalizeSale(venteData: vente, venteJeuxData: details)
-                successMessage = "Vente #\(final.id ?? -1) enregistrée!"
+                //let final = try await VenteService.shared.finalizeSale(venteData: vente, venteJeuxData: details)
+                //successMessage = "Vente #\(final.vente_id ?? -1) enregistrée!"
                 cart.removeAll()
                 showBuyerDialog = false
             } catch {

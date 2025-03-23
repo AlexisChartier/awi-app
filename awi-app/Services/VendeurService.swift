@@ -1,3 +1,11 @@
+//
+//  VendeurService.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
+
+
 import Foundation
 
 class VendeurService {
@@ -6,16 +14,23 @@ class VendeurService {
 
     /// Récupérer la liste de tous les vendeurs
     func fetchAllVendeurs() async throws -> [Vendeur] {
-        let request = try Api.shared.makeRequest(endpoint: "api/vendeurs", method: "GET")
+        let request = try Api.shared.makeRequest(endpoint: "/api/vendeurs", method: "GET")
         let (data, response) = try await URLSession.shared.data(for: request)
-        
+
         guard let httpResponse = response as? HTTPURLResponse,
               httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
-        
-        return try JSONDecoder().decode([Vendeur].self, from: data)
+
+        // Définir une struct locale qui correspond au JSON renvoyé
+        struct VendeursResponse: Codable {
+            let vendeurs: [Vendeur]
+        }
+
+        let decoded = try JSONDecoder().decode(VendeursResponse.self, from: data)
+        return decoded.vendeurs
     }
+
 
     /// Créer un nouveau vendeur
     func createVendeur(_ vendeur: Vendeur) async throws -> Vendeur {
@@ -23,7 +38,7 @@ class VendeurService {
         let body = try JSONEncoder().encode(vendeur)
         
         let request = try Api.shared.makeRequest(
-            endpoint: "api/vendeurs",
+            endpoint: "/api/vendeurs",
             method: "POST",
             body: body
         )
@@ -35,13 +50,20 @@ class VendeurService {
             throw URLError(.badServerResponse)
         }
         
+        struct CreateVendeurResponse: Codable{
+            let message: String
+            let vendeur: Vendeur
+        }
+    
+        
         // Le back-end renvoie le vendeur créé (avec son id)
-        return try JSONDecoder().decode(Vendeur.self, from: data)
+        let decoded = try JSONDecoder().decode(CreateVendeurResponse.self, from: data)
+        return decoded.vendeur
     }
 
     /// Récupérer un vendeur par son id
     func fetchVendeur(id: Int) async throws -> Vendeur {
-        let request = try Api.shared.makeRequest(endpoint: "api/vendeurs/\(id)", method: "GET")
+        let request = try Api.shared.makeRequest(endpoint: "/api/vendeurs/\(id)", method: "GET")
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,
@@ -61,7 +83,7 @@ class VendeurService {
         let body = try JSONEncoder().encode(vendeur)
         
         let request = try Api.shared.makeRequest(
-            endpoint: "api/vendeurs/\(vendeurId)",
+            endpoint: "/api/vendeurs/\(vendeurId)",
             method: "PUT",
             body: body
         )
@@ -78,7 +100,7 @@ class VendeurService {
 
     /// Supprimer un vendeur
     func deleteVendeur(id: Int) async throws {
-        let request = try Api.shared.makeRequest(endpoint: "api/vendeurs/\(id)", method: "DELETE")
+        let request = try Api.shared.makeRequest(endpoint: "/api/vendeurs/\(id)", method: "DELETE")
         let (_, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse,

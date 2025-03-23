@@ -1,3 +1,11 @@
+//
+//  Api.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
+
+
 import Foundation
 
 /// Gère la config réseau globale, l'URL de base, le token, etc.
@@ -15,7 +23,7 @@ class Api {
     /// Méthode utilitaire pour créer une URLRequest et gérer l'entête Authorization.
     func makeRequest(
         endpoint: String,
-        method: String = "GET",
+        method: String,
         queryParams: [String: String]? = nil,
         body: Data? = nil
     ) throws -> URLRequest {

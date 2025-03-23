@@ -1,77 +1,146 @@
 import SwiftUI
 
+@MainActor
 class SaleViewModel: ObservableObject {
-    @Published var ventes: [VenteRequest] = []
-    @Published var loading: Bool = false
+    @Published var sessions: [Session] = []
+    @Published var selectedSessionId: Int?
+    @Published var sales: [VenteRequest] = []
     @Published var errorMessage: String?
+    @Published var loading = false
 
-    func loadSalesBySession(_ sessionId: Int) {
+    // tri
+    enum SortField { case date, montant }
+    @Published var sortField: SortField = .date
+    @Published var sortAsc: Bool = true
+
+    // pagination
+    let perPage = 10
+    @Published var currentPage = 1
+
+    // detail
+    @Published var showDetailModal = false
+    @Published var selectedSale: VenteRequest?
+    @Published var saleDetails: [VenteJeuRequest] = []
+    // acheteur
+    @Published var buyer: Acheteur?
+
+    func loadInitial() {
+        Task {
+            do {
+                let allS = try await SessionService.shared.getAll()
+                self.sessions = allS
+            } catch {
+                errorMessage = "Erreur chargement sessions"
+            }
+        }
+    }
+
+    func loadSales() {
+        guard let sid = selectedSessionId else {
+            self.sales = []
+            return
+        }
         loading = true
         Task {
             do {
-                let results = try await VenteService.shared.getSalesBySession(sessionId: sessionId)
-                await MainActor.run {
-                    self.ventes = results
-                    self.loading = false
-                }
+                let s = try await VenteService.shared.getSalesBySession(sessionId: sid)
+                self.sales = s
+                self.currentPage = 1
+                applySort()
             } catch {
-                await MainActor.run {
-                    self.errorMessage = "Erreur chargement ventes"
-                    self.loading = false
+                errorMessage = "Erreur chargement ventes"
+                print(error)
+            }
+            loading = false
+        }
+    }
+
+    func applySort() {
+        switch sortField {
+        case .date:
+            sales.sort {
+                let d1 = $0.date_vente ?? ""
+                let d2 = $1.date_vente ?? ""
+                if sortAsc {
+                    return d1 < d2
+                } else {
+                    return d1 > d2
+                }
+            }
+        case .montant:
+            sales.sort {
+                let m1 = $0.montant_total
+                let m2 = $1.montant_total
+                if sortAsc {
+                    return m1 < m2
+                } else {
+                    return m1 > m2
                 }
             }
         }
     }
 
-    func createVente(_ data: VenteRequest) async -> Int? {
-        loading = true
-        do {
-            let venteId = try await VenteService.shared.createVente(venteData: data)
-            await MainActor.run {
-                self.loading = false
+    var filteredSales: [VenteRequest] {
+        // on pourrait filtrer par acheteur...
+        return sales
+    }
+
+    var totalPages: Int {
+        let count = filteredSales.count
+        return count == 0 ? 1 : Int(ceil(Double(count) / Double(perPage)))
+    }
+
+    var currentSales: [VenteRequest] {
+        let idxLast = currentPage * perPage
+        let idxFirst = idxLast - perPage
+        guard idxFirst < filteredSales.count else { return [] }
+        let slice = filteredSales[idxFirst..<min(idxLast, filteredSales.count)]
+        return Array(slice)
+    }
+
+    func goToPage(_ page: Int) {
+        guard page >= 1 && page <= totalPages else { return }
+        currentPage = page
+    }
+
+    func sortBy(_ field: SortField) {
+        if sortField == field {
+            sortAsc.toggle()
+        } else {
+            sortField = field
+            sortAsc = true
+        }
+        applySort()
+    }
+
+    // modal detail
+    func openSaleDetail(_ sale: VenteRequest) {
+        selectedSale = sale
+        showDetailModal = true
+
+        // charger details
+        Task {
+            do {
+                let vid = sale.vente_id
+                    let detail = try await VenteService.shared.getSalesDetails(venteId: vid!)
+                    self.saleDetails = detail
+                if let aid = sale.acheteur_id {
+                        self.buyer = try await AcheteurService.shared.fetchAcheteur(id: aid)
+                    } else {
+                        self.buyer = nil
+                    }
+                
+            } catch {
+                errorMessage = "Erreur chargement details"
+                print(error)
             }
-            return venteId
-        } catch {
-            await MainActor.run {
-                self.errorMessage = "Erreur creation vente"
-                self.loading = false
-            }
-            return nil
         }
     }
 
-    func createVenteJeux(_ venteJeuData: [VenteJeuRequest]) {
-        loading = true
-        Task {
-            do {
-                try await VenteService.shared.createVenteJeux(venteJeuData)
-                await MainActor.run {
-                    self.loading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = "Erreur creation venteJeux"
-                    self.loading = false
-                }
-            }
-        }
-    }
-
-    func finalizeSale(venteData: VenteRequest, venteJeuxData: [VenteJeuRequest]) {
-        loading = true
-        Task {
-            do {
-                let _ = try await VenteService.shared.finalizeSale(venteData: venteData, venteJeuxData: venteJeuxData)
-                // On obtient la vente finalisée
-                await MainActor.run {
-                    self.loading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = "Erreur finalisation vente"
-                    self.loading = false
-                }
-            }
-        }
+    func closeDetailModal() {
+        showDetailModal = false
+        selectedSale = nil
+        saleDetails = []
+        buyer = nil
     }
 }

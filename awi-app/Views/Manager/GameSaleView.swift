@@ -2,101 +2,96 @@ import SwiftUI
 
 struct GameSaleView: View {
     @StateObject var vm = GameSaleViewModel()
+    @State private var showCartSheet = false
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 0) {
+                // 🧾 Messages
                 if let err = vm.errorMessage {
-                    Text(err).foregroundColor(.red)
+                    Text(err).foregroundColor(.red).padding()
                 }
                 if let succ = vm.successMessage {
-                    Text(succ).foregroundColor(.green)
+                    Text(succ).foregroundColor(.green).padding()
                 }
 
+                // 🔍 Filtres
+                HStack(spacing: 12) {
+                    TextField("🎲 Jeu", text: $vm.filterGameName)
+                        .textFieldStyle(.roundedBorder)
+                    TextField("📦 Code-barres", text: $vm.filterBarcode)
+                        .textFieldStyle(.roundedBorder)
+
+                    Spacer()
+
+                    Button {
+                        showCartSheet = true
+                    } label: {
+                        Label("Voir Panier", systemImage: "cart")
+                    }
+                    .buttonStyle(.bordered)
+                }
+                .padding(.horizontal)
+
                 if vm.loading {
+                    Spacer()
                     ProgressView("Chargement...")
+                    Spacer()
                 } else {
-                    // Filtre
-                    HStack {
-                        TextField("Filtrer jeu", text: $vm.filterGameName)
-                            .textFieldStyle(.roundedBorder)
-                        TextField("Filtrer code-barres", text: $vm.filterBarcode)
-                            .textFieldStyle(.roundedBorder)
-                        Spacer()
-                        Button("Effectuer la vente") {
-                            vm.finalizeSale()
+                    // 🎮 Liste des produits en vente
+                    ScrollView {
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                            ForEach(vm.sortedDepots, id: \.depot_jeu_id) { depot in
+                                let game = vm.allGames.first(where: { $0.id == depot.jeu_id })
+                                let vendor = vm.allVendors.first(where: { $0.id == depot.vendeur_id })
+
+                                ProductCardView(
+                                    depot: depot,
+                                    gameName: game?.nom ?? "Jeu inconnu",
+                                    vendorName: vendor?.nom ?? "Vendeur inconnu",
+                                    imageUrl: game?.image ?? "",
+                                    onAddToCart: { vm.addToCart(depot) },
+                                    onGenerateBarcode: {
+                                        vm.generateBarcode(depot)
+                                    }
+                                )
+                            }
                         }
+                        .padding()
+                    }
+                }
+
+                // 🧾 Bouton bas de page
+                if !vm.cart.isEmpty {
+                    Button {
+                        showCartSheet = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "cart.fill")
+                            Text("Finaliser la vente (\(vm.cart.count) articles - \(vm.totalSalePrice, format: .number)€)")
+                        }
+                        .frame(maxWidth: .infinity)
                     }
                     .padding()
-
-                    HStack {
-                        // liste “en vente”
-                        ScrollView {
-                            let depots = vm.sortedDepots
-                            ForEach(depots, id: \.id) { depot in
-                                // un composant row
-                                SaleProductRow(vm: vm, depot: depot)
-                            }
-                        }
-                        .frame(width: 300)
-
-                        // Panier
-                        VStack {
-                            Text("Panier").font(.headline)
-                            if vm.cart.isEmpty {
-                                Text("Panier vide")
-                            } else {
-                                List {
-                                    ForEach(vm.cart, id: \.id) { c in
-                                        HStack {
-                                            Text("Jeu #\(c.jeu_id)")
-                                            Spacer()
-                                            Text("\(c.prix_vente, format:.number)€")
-                                        }
-                                        .onTapGesture {
-                                            vm.removeFromCart(c)
-                                        }
-                                    }
-                                }
-                                Text("Total: \(vm.totalSalePrice, format:.number)€")
-                            }
-                        }
-                        .frame(maxWidth:.infinity)
-                    }
+                    .background(Color.blue)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .padding(.horizontal)
+                    .padding(.bottom, 8)
                 }
             }
             .navigationTitle("Gestion des Ventes")
             .onAppear {
                 vm.loadData()
             }
-            .sheet(isPresented: $vm.showBuyerDialog) {
-                BuyerSelectionSheet(vm: vm)
+            .sheet(isPresented: $showCartSheet) {
+                CartSheet(vm: vm)
             }
         }
     }
 }
 
-struct SaleProductRow: View {
-    @ObservedObject var vm: GameSaleViewModel
-    let depot: DepotJeu
 
-    var body: some View {
-        HStack {
-            Text("D#\(depot.id ?? -1) / J#\(depot.jeu_id)")
-            Spacer()
-            Text("\(depot.prix_vente, format:.number) €")
-        }
-        .contentShape(Rectangle()) // so we can tap
-        .onTapGesture {
-            vm.addToCart(depot)
-        }
-        .contextMenu {
-            Button("Générer code-barres") {
-                vm.generateBarcode(depot)
-            }
-        }
-    }
-}
 
 // Sous-vue d’exemple pour sélectionner acheteur / finaliser
 struct BuyerSelectionSheet: View {
@@ -123,5 +118,52 @@ struct BuyerSelectionSheet: View {
             }
         }
         .padding()
+    }
+}
+
+struct CartSheet: View {
+    @ObservedObject var vm: GameSaleViewModel
+
+    var body: some View {
+        NavigationStack {
+            VStack {
+                Text("🛒 Panier")
+                    .font(.title2.bold())
+                    .padding(.top)
+
+                if vm.cart.isEmpty {
+                    Text("Aucun article")
+                        .foregroundColor(.gray)
+                        .padding()
+                } else {
+                    List {
+                        ForEach(vm.cart, id: \.depot_jeu_id) { item in
+                            let game = vm.allGames.first { $0.id == item.jeu_id }
+                            HStack {
+                                Text(game?.nom ?? "Jeu")
+                                Spacer()
+                                Text("\(item.prix_vente, format: .number)€")
+                            }
+                            .onTapGesture {
+                                vm.removeFromCart(item)
+                            }
+                        }
+                    }
+
+                    Text("Total: \(vm.totalSalePrice, format: .number)€")
+                        .bold()
+                        .padding(.top)
+
+                    Button("💰 Finaliser la vente") {
+                        vm.finalizeSale()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.top)
+                }
+
+                Spacer()
+            }
+            .padding()
+        }
     }
 }

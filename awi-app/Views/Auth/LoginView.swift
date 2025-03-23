@@ -1,62 +1,81 @@
-//
-//  LoginView.swift
-//  awi-app
-//
-//  Created by etud on 17/03/2025.
-//
-
-
 import SwiftUI
 
 struct LoginView: View {
-    @StateObject private var authVM = AuthViewModel()
+    @EnvironmentObject var authVM: AuthViewModel
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                Text("Gestion dépôt-vente")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-                    .padding(.top, 40)
+            VStack {
+                Spacer(minLength: 40)
+                
+                // Logo ou illustration
+                Image(systemName: "lock.shield.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .foregroundColor(.blue)
+                    .padding(.bottom, 10)
 
-                // Champ Login
-                TextField("Identifiant", text: $authVM.login)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(8)
+                Text("Bienvenue")
+                    .font(.title)
+                    .fontWeight(.semibold)
+                
+                Text("Connectez-vous pour continuer")
+                    .foregroundColor(.gray)
+                    .padding(.bottom, 30)
+                
+                VStack(spacing: 16) {
+                    // Champ Login
+                    TextField("Identifiant", text: $authVM.login)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(.secondarySystemBackground)))
 
-                // Champ Password
-                SecureField("Mot de passe", text: $authVM.password)
-                    .padding()
-                    .background(Color(.secondarySystemBackground))
-                    .cornerRadius(8)
+                    // Champ Password
+                    SecureField("Mot de passe", text: $authVM.password)
+                        .padding()
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color(.secondarySystemBackground)))
+
+                    // Message d’erreur avec animation
+                    if let error = authVM.errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .font(.footnote)
+                            .transition(.opacity)
+                    }
+                }
+                .padding(.horizontal)
 
                 // Bouton connexion
                 Button(action: {
                     authVM.loginAction()
                 }) {
-                    Text("Se connecter")
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .foregroundColor(.white)
-                        .background(Color.blue)
-                        .cornerRadius(8)
+                    if authVM.isLoading {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(10)
+                    } else {
+                        Text("Se connecter")
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(10)
+                    }
                 }
-
-                // Message d’erreur
-                if let error = authVM.errorMessage {
-                    Text(error)
-                        .foregroundColor(.red)
-                }
+                .padding(.top, 20)
 
                 Spacer()
             }
             .padding()
             .navigationTitle("Connexion")
         }
-        .onChange(of: authVM.isAuthenticated) { isAuth in
-            // Si la connexion réussit, vous pouvez naviguer 
-            // ou laisser RootView gérer la redirection
+        .onChange(of: authVM.isAuthenticated) { _, newValue in
+            if newValue {
+                // Navigation déclenchée par RootView si nécessaire
+            }
         }
     }
 }

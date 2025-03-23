@@ -12,27 +12,30 @@ struct ProductCardView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text(gameName)
                 .font(.headline)
+                .lineLimit(1)
 
             Text("Vendeur: \(vendorName)")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
+                .lineLimit(1)
 
             AsyncImage(url: URL(string: imageUrl)) { phase in
                 switch phase {
                 case .empty:
                     ProgressView()
+                        .frame(height: 120)
                 case .success(let image):
                     image
                         .resizable()
-                        .scaledToFill()
-                        .frame(height: 140)
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity, maxHeight: 140)
                         .clipped()
                         .cornerRadius(10)
                 case .failure:
                     Image(systemName: "photo")
                         .resizable()
                         .scaledToFit()
-                        .frame(height: 140)
+                        .frame(height: 120)
                         .foregroundColor(.gray)
                 @unknown default:
                     EmptyView()
@@ -65,17 +68,12 @@ struct ProductCardView: View {
                 Text("\(depot.prix_vente, format: .number)€")
                     .font(.subheadline)
             }
-
-            if let barcodeAction = onGenerateBarcode {
-                Button("🔁 Générer code-barres") {
-                    barcodeAction()
-                }
-                .font(.caption)
-            }
         }
         .padding()
         .background(Color(.systemBackground))
         .cornerRadius(12)
-        .shadow(radius: 4)
+        .shadow(radius: 2)
+        .frame(maxWidth: 200) // ✅ Contraint la largeur
+        .fixedSize(horizontal: false, vertical: true)
     }
 }

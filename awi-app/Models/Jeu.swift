@@ -1,7 +1,15 @@
+//
+//  Jeu.swift
+//  awi-app
+//
+//  Created by etud on 15/03/2025.
+//
+
+
 import Foundation
 
 struct Jeu: Identifiable, Codable {
-    let id: Int               // correspond à jeu_id
+    let id: Int?               // correspond à jeu_id
     var nom: String
     var auteur: String?
     var editeur: String?

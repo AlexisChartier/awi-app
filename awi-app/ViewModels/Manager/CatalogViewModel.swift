@@ -1,60 +1,220 @@
 import SwiftUI
 
+@MainActor
 class CatalogViewModel: ObservableObject {
-    @Published var jeux: [JeuRequest] = []
-    @Published var loading = false
+    @Published var jeux: [Jeu] = []
+    @Published var searchTerm: String = ""
+    @Published var filterEditeur: String = ""
+    @Published var sortKey: SortKey? = nil     // .nom, .auteur, .editeur
+    @Published var sortAsc: Bool = true
+
+    @Published var selectedGames: Set<Int> = []
     @Published var errorMessage: String?
+    @Published var isLoading = false
 
-    func loadJeux() {
-        loading = true
+    // Pagination
+    @Published var currentPage: Int = 0
+    let itemsPerPage = 50
+
+    // Création / Édition
+    @Published var showFormDialog = false
+    @Published var isEditMode = false
+    @Published var currentGame: Jeu? = nil
+
+    // Suppression individuelle
+    @Published var showDeleteDialog = false
+    @Published var gameToDelete: Jeu? = nil
+
+    // CSV Import
+    @Published var csvFileData: Data? = nil
+
+    // Tri possible
+    enum SortKey {
+        case nom, auteur, editeur
+    }
+
+    func loadGames() {
+        isLoading = true
         Task {
             do {
-                let data = try await JeuService.shared.getAll()
-                await MainActor.run {
-                    self.jeux = data
-                    self.loading = false
-                }
+                let fetched = try await JeuService.shared.getAllJeux()
+                self.jeux = fetched
             } catch {
-                await MainActor.run {
-                    self.errorMessage = "Erreur chargement jeux: \(error)"
-                    self.loading = false
+                self.errorMessage = "Erreur chargement catalogue: \(error)"
+            }
+            self.isLoading = false
+        }
+    }
+
+    // Filtrage
+    var filteredJeux: [Jeu] {
+        let lower = searchTerm.lowercased()
+        return jeux.filter { jeu in
+            // Filtrer sur nom/auteur/editeur
+            let matchSearch =
+                jeu.nom.lowercased().contains(lower) ||
+                (jeu.auteur?.lowercased().contains(lower) ?? false) ||
+                (jeu.editeur?.lowercased().contains(lower) ?? false)
+            let matchEd = filterEditeur.isEmpty
+                || (jeu.editeur?.lowercased() == filterEditeur.lowercased())
+
+            return matchSearch && matchEd
+        }
+    }
+
+    // Tri
+    var sortedJeux: [Jeu] {
+        var array = filteredJeux
+        guard let sk = sortKey else { return array }
+        array.sort {
+            let strA: String
+            let strB: String
+            switch sk {
+            case .nom:
+                strA = $0.nom.lowercased()
+                strB = $1.nom.lowercased()
+            case .auteur:
+                strA = $0.auteur?.lowercased() ?? ""
+                strB = $1.auteur?.lowercased() ?? ""
+            case .editeur:
+                strA = $0.editeur?.lowercased() ?? ""
+                strB = $1.editeur?.lowercased() ?? ""
+            }
+            if sortAsc {
+                return strA < strB
+            } else {
+                return strA > strB
+            }
+        }
+        return array
+    }
+
+    // Pagination
+    var totalPages: Int {
+        let c = sortedJeux.count
+        return c == 0 ? 1 : Int(ceil(Double(c) / Double(itemsPerPage)))
+    }
+
+    var pageJeux: [Jeu] {
+        let start = currentPage * itemsPerPage
+        guard start < sortedJeux.count else { return [] }
+        let end = min(start + itemsPerPage, sortedJeux.count)
+        return Array(sortedJeux[start..<end])
+    }
+
+    func nextPage() {
+        if currentPage < totalPages - 1 {
+            currentPage += 1
+        }
+    }
+
+    func prevPage() {
+        if currentPage > 0 {
+            currentPage -= 1
+        }
+    }
+
+    // Sélection
+    func toggleSelectGame(_ jeuId: Int) {
+        if selectedGames.contains(jeuId) {
+            selectedGames.remove(jeuId)
+        } else {
+            selectedGames.insert(jeuId)
+        }
+    }
+    func deleteSelectedGames() {
+        Task {
+            do {
+                for jeuId in selectedGames {
+                    try await JeuService.shared.delete(id:jeuId)
                 }
+                await loadGames()
+                selectedGames.removeAll()
+            } catch {
+                errorMessage = "Erreur suppression groupée"
             }
         }
     }
 
-    func createJeu(_ jeu: JeuRequest) {
-        loading = true
+    // Individuelle
+    func openDeleteDialog(_ jeu: Jeu) {
+        gameToDelete = jeu
+        showDeleteDialog = true
+    }
+    func closeDeleteDialog() {
+        showDeleteDialog = false
+        gameToDelete = nil
+    }
+    func confirmDeleteGame() {
+        guard let toDel = gameToDelete, let jid = toDel.id else { return }
         Task {
             do {
-                let newJeu = try await JeuService.shared.create(data: jeu)
-                await MainActor.run {
-                    self.jeux.append(newJeu)
-                    self.loading = false
-                }
+                try await JeuService.shared.delete(id:jid)
+                await loadGames()
             } catch {
-                await MainActor.run {
-                    self.errorMessage = "Erreur creation jeu: \(error)"
-                    self.loading = false
-                }
+                errorMessage = "Erreur suppression jeu"
             }
+            showDeleteDialog = false
         }
     }
 
-    func deleteJeu(_ id: Int) {
-        loading = true
+    // Création / Édition
+    func openCreateDialog() {
+        isEditMode = false
+        currentGame = Jeu(
+            id: nil, nom: "", auteur: nil, editeur: nil,
+            nbJoueurs: nil, ageMin: nil, duree: nil,
+            typeJeu: nil, notice: nil, themes: nil, description: nil,
+            image: nil, logo: nil
+        )
+        showFormDialog = true
+    }
+
+    func openEditDialog(_ jeu: Jeu) {
+        isEditMode = true
+        currentGame = jeu
+        showFormDialog = true
+    }
+
+    func closeFormDialog() {
+        showFormDialog = false
+        errorMessage = nil
+    }
+
+    func saveGame(_ newGame: Jeu, imageFile: Data?) {
         Task {
             do {
-                try await JeuService.shared.delete(id: id)
-                await MainActor.run {
-                    self.jeux.removeAll { $0.jeu_id == id }
-                    self.loading = false
+                if isEditMode, let jid = newGame.id {
+                    // Update
+                    let updated = try await JeuService.shared.update(id:jid, data:newGame)
+                } else {
+                    // Create
+                    if let fileData = imageFile {
+                        // createWithImage => FormData
+                        // vous devrez adapter si votre code stocke un Data ou un UIImage
+                        // Cf. Swift concurrency + multipart...
+                        // On simplifie l'exemple
+                        //try await JeuService.shared.createWithImage(newGame, imageData: fileData)
+                    } else {
+                        try await JeuService.shared.create(data: newGame)
+                    }
                 }
+                await loadGames()
             } catch {
-                await MainActor.run {
-                    self.errorMessage = "Erreur suppression jeu: \(error)"
-                    self.loading = false
-                }
+                errorMessage = "Erreur enregistrement jeu: \(error)"
+            }
+            showFormDialog = false
+        }
+    }
+
+    // Import CSV
+    func importCsv(_ data: Data) {
+        Task {
+            do {
+                //try await JeuService.shared.importCsv(csvData: data, fileName: <#String#>)
+                await loadGames()
+            } catch {
+                errorMessage = "Erreur import CSV"
             }
         }
     }

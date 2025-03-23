@@ -5,7 +5,6 @@
 //  Created by etud on 17/03/2025.
 //
 
-
 import Foundation
 
 struct VenteRequest: Codable {
@@ -14,15 +13,115 @@ struct VenteRequest: Codable {
     var date_vente: String?
     var montant_total: Double
     var session_id: Int
+
+    enum CodingKeys: String, CodingKey {
+        case vente_id
+        case acheteur_id
+        case date_vente
+        case montant_total
+        case session_id
+    }
+
+    // init custom pour décoder
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        self.vente_id     = try? container.decode(Int.self, forKey: .vente_id)
+        self.acheteur_id  = try? container.decode(Int.self, forKey: .acheteur_id)
+        self.date_vente   = try? container.decode(String.self, forKey: .date_vente)
+        self.session_id   = try container.decode(Int.self, forKey: .session_id)
+
+        // Tenter Double direct
+        if let d = try? container.decode(Double.self, forKey: .montant_total) {
+            self.montant_total = d
+        } else {
+            // Sinon, tenter String puis convertir
+            let str = try container.decode(String.self, forKey: .montant_total)
+            guard let converted = Double(str) else {
+                throw DecodingError.dataCorruptedError(
+                    forKey: .montant_total,
+                    in: container,
+                    debugDescription: "Impossible de convertir '\(str)' en Double pour montant_total"
+                )
+            }
+            self.montant_total = converted
+        }
+    }
+
+    // init pour usage Swift
+    init(
+        vente_id: Int?,
+        acheteur_id: Int?,
+        date_vente: String?,
+        montant_total: Double,
+        session_id: Int
+    ) {
+        self.vente_id = vente_id
+        self.acheteur_id = acheteur_id
+        self.date_vente = date_vente
+        self.montant_total = montant_total
+        self.session_id = session_id
+    }
 }
+
 
 struct VenteJeuRequest: Codable {
     var vente_id: Int?
     var depot_jeu_id: Int?
     var prix_vente: Double?
     var commission: Double?
-    // autres champs si nécessaire
-}
+    
+    enum CodingKeys: String, CodingKey {
+        case vente_id
+        case depot_jeu_id
+        case prix_vente
+        case commission
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        vente_id = try? container.decodeIfPresent(Int.self, forKey: .vente_id)
+        depot_jeu_id = try? container.decodeIfPresent(Int.self, forKey: .depot_jeu_id)
+
+        // 🔄 Decode `Double` from String OR Number
+        if let prixDouble = try? container.decodeIfPresent(Double.self, forKey: .prix_vente) {
+            prix_vente = prixDouble
+        } else if let prixString = try? container.decodeIfPresent(String.self, forKey: .prix_vente),
+                  let prix = Double(prixString) {
+            prix_vente = prix
+        }
+
+        if let comDouble = try? container.decodeIfPresent(Double.self, forKey: .commission) {
+            commission = comDouble
+        } else if let comString = try? container.decodeIfPresent(String.self, forKey: .commission),
+                  let com = Double(comString) {
+            commission = com
+        }
+    }
+
+    // 🔁 Encode normalement
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encodeIfPresent(vente_id, forKey: .vente_id)
+        try container.encodeIfPresent(depot_jeu_id, forKey: .depot_jeu_id)
+        try container.encodeIfPresent(prix_vente, forKey: .prix_vente)
+        try container.encodeIfPresent(commission, forKey: .commission)
+    }
+    
+    init(
+        vente_id: Int?,
+        depot_jeu_id: Int?,
+        prix_vente: Double?,
+        commission: Double?) {
+        self.vente_id = vente_id
+            self.depot_jeu_id = depot_jeu_id
+            self.prix_vente = prix_vente
+            self.commission = commission
+    }
+    }
+
+
 
 class VenteService {
     static let shared = VenteService()
@@ -31,7 +130,7 @@ class VenteService {
     /// POST /ventes => renvoie { vente_id: number, ... }
     func createVente(venteData: VenteRequest) async throws -> Int {
         let body = try JSONEncoder().encode(venteData)
-        let request = try Api.shared.makeRequest(endpoint: "ventes", method: "POST", body: body)
+        let request = try Api.shared.makeRequest(endpoint: "/api/ventes", method: "POST", body: body)
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -51,7 +150,7 @@ class VenteService {
     /// POST /ventes-jeux => création multiple
     func createVenteJeux(_ venteJeuxData: [VenteJeuRequest]) async throws {
         let body = try JSONEncoder().encode(venteJeuxData)
-        let request = try Api.shared.makeRequest(endpoint: "ventes-jeux", method: "POST", body: body)
+        let request = try Api.shared.makeRequest(endpoint: "/api/ventes-jeux", method: "POST", body: body)
 
         let (_, response) = try await URLSession.shared.data(for: request)
         guard let httpResponse = response as? HTTPURLResponse,
@@ -68,7 +167,7 @@ class VenteService {
         }
         let body = try JSONEncoder().encode(FinalizeBody(venteData: venteData, venteJeuxData: venteJeuxData))
 
-        let request = try Api.shared.makeRequest(endpoint: "ventes/finalize", method: "POST", body: body)
+        let request = try Api.shared.makeRequest(endpoint: "/api/ventes/finalize", method: "POST", body: body)
         let (resData, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -86,7 +185,7 @@ class VenteService {
 
     /// POST /ventes/invoice/{venteId}
     func sendInvoice(venteId: Int) async throws {
-        let request = try Api.shared.makeRequest(endpoint: "ventes/invoice/\(venteId)", method: "POST")
+        let request = try Api.shared.makeRequest(endpoint: "/api/ventes/invoice/\(venteId)", method: "POST")
         let (_, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -97,7 +196,7 @@ class VenteService {
 
     /// GET /ventes/sessions/{session_id} => { ventes: [...] }
     func getSalesBySession(sessionId: Int) async throws -> [VenteRequest] {
-        let request = try Api.shared.makeRequest(endpoint: "ventes/sessions/\(sessionId)", method: "GET")
+        let request = try Api.shared.makeRequest(endpoint: "/api/ventes/sessions/\(sessionId)", method: "GET")
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -107,12 +206,15 @@ class VenteService {
         struct SalesResponse: Codable {
             let ventes: [VenteRequest]
         }
-        return try JSONDecoder().decode(SalesResponse.self, from: data).ventes
+        print(httpResponse)
+        let decoded = try JSONDecoder().decode(SalesResponse.self, from: data)
+        print(decoded.ventes)
+        return decoded.ventes
     }
 
     /// GET /ventes/details/{vente_id} => { venteJeux: [...] }
     func getSalesDetails(venteId: Int) async throws -> [VenteJeuRequest] {
-        let request = try Api.shared.makeRequest(endpoint: "ventes/details/\(venteId)", method: "GET")
+        let request = try Api.shared.makeRequest(endpoint: "/api/ventes/details/\(venteId)", method: "GET")
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,
@@ -127,7 +229,7 @@ class VenteService {
 
     /// PUT /ventes/addBuyer/{vente_id}&{acheteur_id} => { vente: {...} }
     func setAcheteur(venteId: Int, acheteurId: Int) async throws -> VenteRequest {
-        let request = try Api.shared.makeRequest(endpoint: "ventes/addBuyer/\(venteId)&\(acheteurId)", method: "PUT")
+        let request = try Api.shared.makeRequest(endpoint: "/api/ventes/addBuyer/\(venteId)&\(acheteurId)", method: "PUT")
         let (data, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,

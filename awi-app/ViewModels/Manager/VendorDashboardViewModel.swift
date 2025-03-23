@@ -1,10 +1,9 @@
 //
-//  VendorDashboardStats.swift
+//  VendorDashboardViewModel.swift
 //  awi-app
 //
 //  Created by etud on 19/03/2025.
 //
-
 
 import SwiftUI
 
@@ -22,13 +21,12 @@ struct VendorDashboardStats {
 }
 
 /// Une structure pour un "depot" + "vente"
-/// similaire à "DepotAvecVente" en React
 struct DepotAvecVente: Identifiable {
     var id = UUID()
 
-    var depot: DepotJeu  // ou DepotJeuRequest
+    var depot: DepotJeuRequest
     var identifiantUnique: String?
-    var vente: Vente?
+    var vente: VenteRequest?
     var venteJeu: VenteJeuRequest?
 }
 
@@ -80,28 +78,23 @@ class VendorDashboardViewModel: ObservableObject {
         loading = true
         Task {
             do {
-                // Charger les jeux, vendeurs, sessions
-                async let g = JeuService.shared.getAll()
+                // Chargement en parallèle
+                async let g = JeuService.shared.getAllJeux()
                 async let v = VendeurService.shared.fetchAllVendeurs()
                 async let s = SessionService.shared.getAll()
 
-                let (gamesFetched, vendorsFetched, sessionsFetched) = await (try? g, try? v, try? s)
+                let (gamesFetched, vendorsFetched, sessionsFetched) = try await (g, v, s)
 
-                if let gf = gamesFetched {
-                    self.games = gf
-                }
-                if let vf = vendorsFetched {
-                    self.vendeurs = vf
-                }
-                if let sf = sessionsFetched {
-                    self.sessions = sf
-                }
+                self.games = gamesFetched
+                self.vendeurs = vendorsFetched
+                self.sessions = sessionsFetched
 
-                // Charger session active + dépôts
-                await fetchSessionActive(vendorId: vendor.id)
+                // Charger la session active et les dépôts
+                await fetchSessionActive(vendorId: vendor.id!)
             } catch {
                 self.errorMessage = "Erreur lors du chargement initial."
             }
+            // Quelle que soit l’issue, on quitte le “loading” ici
             self.loading = false
         }
     }
@@ -109,7 +102,10 @@ class VendorDashboardViewModel: ObservableObject {
     // MARK: - Charger la session active + dépôts
     func fetchSessionActive(vendorId: Int) async {
         do {
-            let activeSession = try await SessionService.shared.getSessionActive()
+            guard let activeSession = try? await SessionService.shared.getSessionActive() else {
+                self.errorMessage = "Aucune session active trouvée."
+                return
+            }
             self.sessionActive = activeSession
 
             // Récupération des dépôts du vendeur pour la session active
@@ -124,10 +120,16 @@ class VendorDashboardViewModel: ObservableObject {
 
             // Convertir en [DepotAvecVente]
             let enVente: [DepotAvecVente] = enVenteRaw.map { d in
-                DepotAvecVente(depot: d, identifiantUnique: d.identifiant_unique, vente: nil, venteJeu: nil)
+                DepotAvecVente(depot: d,
+                               identifiantUnique: d.identifiant_unique,
+                               vente: nil,
+                               venteJeu: nil)
             }
             let retires: [DepotAvecVente] = retiresRaw.map { d in
-                DepotAvecVente(depot: d, identifiantUnique: d.identifiant_unique, vente: nil, venteJeu: nil)
+                DepotAvecVente(depot: d,
+                               identifiantUnique: d.identifiant_unique,
+                               vente: nil,
+                               venteJeu: nil)
             }
 
             // Récupération des ventes pour la session active
@@ -161,6 +163,7 @@ class VendorDashboardViewModel: ObservableObject {
             computeStats()
         } catch {
             self.errorMessage = "Erreur lors du chargement de la session active ou des dépôts."
+            print(error)
         }
     }
 
@@ -172,19 +175,17 @@ class VendorDashboardViewModel: ObservableObject {
 
         let totalVentes  = vendusCount
 
-        // Somme des prix_vente (ou detail.prix_vente ?)
-        let montantTotalVentes = depotsVendus.reduce(0) { acc, dv in
-            acc + (dv.venteJeu?.prix_vente ?? dv.depot.prix_vente)
+        // Somme des prix_vente
+        let montantTotalVentes = depotsVendus.reduce(into: 0.0) { acc, dv in
+            acc += (dv.venteJeu?.prix_vente ?? dv.depot.prix_vente)
         }
 
         // Calcul frais / remise
         var totalRemise = 0.0
+        var totalFrais  = 0.0
         for d in (depotsEnVente + depotsVendus + depotsRetires) {
             totalRemise += d.depot.remise ?? 0
-        }
-        var totalFrais = 0.0
-        for d in (depotsEnVente + depotsVendus + depotsRetires) {
-            totalFrais += d.depot.frais_depot
+            totalFrais  += d.depot.frais_depot
         }
         let fraisPayes = totalFrais - totalRemise
 
@@ -195,7 +196,7 @@ class VendorDashboardViewModel: ObservableObject {
         }
 
         let gainsNets = montantTotalVentes - (fraisPayes + totalCommissions)
-        let solde = montantTotalVentes - totalCommissions
+        let solde     = montantTotalVentes - totalCommissions
 
         self.stats = VendorDashboardStats(
             totalDepotsEnVente: enVenteCount,
@@ -215,19 +216,19 @@ class VendorDashboardViewModel: ObservableObject {
         tabIndex = index
     }
 
-    // MARK: - GenererIdentifiant
-    func genererIdentifiant(_ depot: DepotJeu) {
+    // MARK: - Générer l'identifiant unique
+    func genererIdentifiant(_ depot: DepotJeuRequest) {
         Task {
             do {
                 let updated = try await DepotJeuService.shared.genererIdentifiantUnique(depotId: depot.depot_jeu_id!)
                 // Mettre à jour la liste enVente
-                if let idx = depotsEnVente.firstIndex(where: { $0.depot.depot_jeu_id == depot.depot_jeu_id }) {
+                if let idx = depotsEnVente.firstIndex(where: { $0.depot.depot_jeu_id == depot.depot_jeu_id! }) {
                     var copy = depotsEnVente[idx]
                     copy.identifiantUnique = updated.identifiant_unique
-                    copy.depot = updated // on met à jour le statut s’il change
+                    copy.depot = updated
                     depotsEnVente[idx] = copy
                 }
-                // Recharger ou recalc
+                // Recalculer les stats
                 computeStats()
             } catch {
                 self.errorMessage = "Erreur lors de la génération de l'identifiant."
@@ -235,14 +236,14 @@ class VendorDashboardViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Changer statut
-    func setDepotStatut(_ depot: DepotJeu, newStatut: String) {
+    // MARK: - Changer statut (retirer, remettre en vente)
+    func setDepotStatut(_ depot: DepotJeuRequest, newStatut: String) {
         Task {
             do {
                 try await DepotJeuService.shared.updateDepotStatut(depotId: depot.depot_jeu_id!, statut: newStatut)
-                // Re-fetch ou re-calc
-                if let sessionId = sessionActive?.id {
-                    await fetchSessionActive(vendorId: vendor.id)
+                // Re-fetch
+                if let _ = sessionActive?.id {
+                    await fetchSessionActive(vendorId: vendor.id!)
                 }
             } catch {
                 self.errorMessage = "Erreur lors du changement de statut."

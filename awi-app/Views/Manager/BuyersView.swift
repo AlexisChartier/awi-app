@@ -1,3 +1,11 @@
+//
+//  BuyersView.swift
+//  awi-app
+//
+//  Created by etud on 23/03/2025.
+//
+
+
 import SwiftUI
 
 struct BuyersView: View {
@@ -33,7 +41,7 @@ struct BuyersView: View {
                 } else {
                     // Liste paginée
                     List {
-                        ForEach(vm.paginatedBuyers, id: \.acheteur_id) { b in
+                        ForEach(vm.paginatedBuyers, id: \.id) { b in
                             // Affichage de chaque acheteur
                             VStack(alignment: .leading) {
                                 Text(b.nom).bold()
