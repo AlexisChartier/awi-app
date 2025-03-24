@@ -42,20 +42,6 @@ struct StatsView: View {
                         .padding(.bottom)
                     }
 
-                    // 📈 Graphique Line Chart
-                    if let lineData = vm.salesOverTimeData {
-                        AdminLineChart(data: lineData, maxValue: vm.stats?.totalSalesAmount)
-                            .frame(height: 300)
-                            .padding()
-                    }
-
-                    // 📊 Graphique Bar Chart
-                    if let maxData = vm.maxSaleOverTimeData {
-                        AdminBarChart(data: maxData)
-                            .frame(height: 300)
-                            .padding()
-                    }
-
                     // 🥧 Camembert : Répartition par vendeur
                     VStack(alignment: .leading) {
                         Text("Répartition des dépôts par vendeur")
@@ -127,54 +113,6 @@ struct StatCardView: View {
         .background(.thinMaterial)
         .cornerRadius(12)
         .shadow(radius: 2)
-    }
-}
-
-
-struct AdminLineChart: View {
-    var data: [ChartDataPoint]
-    var maxValue: Double?
-
-    var body: some View {
-        Chart {
-            ForEach(data) { point in
-                LineMark(
-                    x: .value("Date", point.label),
-                    y: .value("Montant", point.value)
-                )
-                .interpolationMethod(.monotone)
-                .foregroundStyle(.blue)
-            }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading)
-        }
-        .chartXScale(range: .plotDimension(padding: 20))
-        .chartYScale(domain: .automatic(includesZero: true))
-        .padding()
-    }
-}
-
-
-struct AdminBarChart: View {
-    var data: [ChartDataPoint]
-
-    var body: some View {
-        Chart {
-            ForEach(data) { point in
-                BarMark(
-                    x: .value("Date", point.label),
-                    y: .value("Max Vente", point.value)
-                )
-                .foregroundStyle(.green)
-            }
-        }
-        .chartYAxis {
-            AxisMarks(position: .leading)
-        }
-        .chartXScale(range: .plotDimension(padding: 20))
-        .chartYScale(domain: .automatic(includesZero: true))
-        .padding()
     }
 }
 

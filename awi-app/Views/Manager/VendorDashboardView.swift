@@ -12,7 +12,8 @@ import UIKit
 
 struct VendorDashboardView: View {
     @StateObject var vm: VendorDashboardViewModel
-    
+    @Environment(\.dismiss) var dismiss
+
     /// Pour empêcher plusieurs appels successifs à loadData() si la vue
     /// est reconstruite ou ré-affichée rapidement.
     @State private var didAppear = false
@@ -52,8 +53,6 @@ struct VendorDashboardView: View {
                     default: StatsVendeurView(vm: vm)
                     }
                 }
-                .navigationTitle("Dashboard Vendeur")
-                .navigationBarTitleDisplayMode(.inline)
                 .onAppear {
                     // Évite d’appeler loadData() plusieurs fois si on revient sur la vue
                     if !didAppear {
@@ -61,32 +60,59 @@ struct VendorDashboardView: View {
                         vm.loadData()
                     }
                 }
+                .navigationBarBackButtonHidden(true) // ❗️Cacher bouton natif
+                .toolbar {
+                    ToolbarItem(placement: .navigationBarLeading) {
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "chevron.left")
+                                Text("Gestion")
+                            }
+                            .foregroundColor(.white)
+                            .font(.body.bold())
+                        }
+                    }
+                }
             }
         }
     }
 
-    // MARK: - Header
     private var headerView: some View {
-        VStack(alignment: .leading) {
-            Text("Tableau de bord Vendeur \(vm.getVendorName(vendeurId: vm.vendor.id))")
-                .font(.title2)
-                .bold()
-            HStack {
-                Text("Solde :")
-                    .font(.headline)
-                Text("\(vm.stats.solde, format: .number) €")
-                    .font(.largeTitle)
-                    .foregroundColor(.yellow)
-            }
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Tableau de bord Vendeur")
+                .font(.subheadline)
+                .foregroundColor(.white.opacity(0.9))
+
+            Text(vm.getVendorName(vendeurId: vm.vendor.id))
+                .font(.title.bold())
+                .foregroundColor(.white)
+
+            Text("Solde : \(vm.stats.solde, format: .number) €")
+                .font(.title2.bold())
+                .foregroundColor(.yellow)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .padding()
+        .padding(.horizontal)
+        .padding(.top, 20) // espace pour encoche + confort
+        .padding(.bottom, 20) // plus large pour mieux contenir le texte
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(
-            LinearGradient(gradient: Gradient(colors: [.blue, .purple]),
-                           startPoint: .leading,
-                           endPoint: .trailing)
+            LinearGradient(
+                gradient: Gradient(colors: [.blue, .purple]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         )
-        .foregroundColor(.white)
     }
+
+
+
+
+
+
 
     // MARK: - tabBar
     private var tabBarView: some View {
@@ -119,10 +145,26 @@ struct EnVenteListView: View {
     var body: some View {
         VStack {
             if let session = vm.sessionActive {
-                Text("Session Active: \(session.nom ?? "Sans nom")\nFrais: \(session.fraisDepot, format: .number)\(session.modeFraisDepot == "fixe" ? "€" : "%"), Commission: \(session.commissionRate, format: .number)%")
-                    .font(.subheadline)
-                    .padding()
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Image(systemName: "calendar.badge.clock")
+                            .foregroundColor(.blue)
+                        Text("Session Active : \(session.nom ?? "Sans nom")")
+                            .font(.headline)
+                    }
+
+                    Text("Frais de dépôt : \(session.fraisDepot, format: .number)\(session.modeFraisDepot == "fixe" ? "€" : "%")")
+                        .font(.subheadline)
+                    Text("Commission : \(session.commissionRate, format: .number)%")
+                        .font(.subheadline)
+                }
+                .padding()
+                .background(Color(.white))
+                .cornerRadius(12)
+                .padding(.horizontal)
+                .padding(.top, 10)
             }
+
             
             List(vm.depotsEnVente, id: \.id) { dv in
                 HStack {
@@ -141,6 +183,8 @@ struct EnVenteListView: View {
                         }
                     }
                     Text(vm.getGameName(jeuId: dv.depot.jeu_id))
+                    Text("Prix de vente : \(dv.depot.prix_vente ?? 0, format: .number) €")
+                        .font(.subheadline)
                     
                     Spacer()
                     
@@ -173,6 +217,7 @@ struct EnVenteListView: View {
                         .buttonStyle(.borderedProminent)
                     }
                 }
+                .listStyle(.plain)
             }
         }
         // Présentation de la feuille de partage si un PDF a été généré
@@ -214,7 +259,7 @@ struct VenduListView: View {
                     if let comm = dv.venteJeu?.commission {
                         Text("Commission: \(comm, format: .number) €")
                             .font(.footnote)
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                     }
                 }
                 Spacer()
@@ -223,6 +268,7 @@ struct VenduListView: View {
                         .font(.footnote)
                 }
             }
+            .listStyle(.plain)
         }
     }
 }
@@ -249,16 +295,20 @@ struct RetiresListView: View {
                 }
                 VStack(alignment: .leading) {
                     Text(vm.getGameName(jeuId: dv.depot.jeu_id))
+                    Text("Prix de vente : \(dv.depot.prix_vente ?? 0, format: .number) €")
+                        .font(.subheadline)
                     Text("Statut: Retiré")
                         .font(.footnote)
                         .foregroundColor(.secondary)
                 }
+
                 Spacer()
                 Button("Remettre en vente") {
                     vm.setDepotStatut(dv.depot, newStatut: "en vente")
                 }
                 .buttonStyle(.bordered)
             }
+            .listStyle(.plain)
         }
     }
 }
@@ -269,8 +319,10 @@ struct StatsVendeurView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("Statistiques de la Session")
-                .font(.headline)
+            Text("📊 Statistiques de la Session")
+                .font(.title3.bold())
+                .padding(.top)
+
 
             VStack(spacing: 8) {
                 statRow(label: "Dépôts en Vente", value: vm.stats.totalDepotsEnVente)
@@ -292,19 +344,33 @@ struct StatsVendeurView: View {
 
     private func statRow(label: String, value: Int) -> some View {
         HStack {
-            Text(label + ":")
+            Text(label)
             Spacer()
             Text("\(value)")
+                .foregroundColor(.gray)
         }
+        .padding(.vertical, 4)
+        .padding(.horizontal, 4)
     }
+
 
     private func statRowDouble(label: String, value: Double) -> some View {
         HStack {
-            Text(label + ":")
+            Text(label)
+                .fontWeight(.medium)
             Spacer()
             Text("\(value, format: .number) €")
+                .font(.body)
+                .foregroundColor(.blue)
         }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 12)
+        .background(Color.white)
+        .cornerRadius(10)
+        .shadow(color: Color.black.opacity(0.05), radius: 2, x: 0, y: 2)
+
     }
+
 }
 
 struct ShareSheet: UIViewControllerRepresentable {

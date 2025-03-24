@@ -7,36 +7,35 @@ struct DepositsView: View {
     @StateObject private var catalogVM = CatalogViewModel()
     @State private var showGameCreationSheet = false
 
-
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // Zone d'alertes
-                if let error = vm.errorMessage {
-                    alertView(text: error, color: .red) {
-                        vm.errorMessage = nil
-                    }
-                }
-                if let success = vm.successMessage {
-                    alertView(text: success, color: .green) {
-                        vm.successMessage = nil
-                    }
-                }
+            ZStack {
+                LinearGradient(
+                    colors: [Color("BackgroundStart"), Color("BackgroundEnd")],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-                if vm.isLoading {
-                    Spacer()
-                    ProgressView("Chargement...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                    Spacer()
-                } else {
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: 20) {
+                VStack(spacing: 0) {
+                    if let error = vm.errorMessage {
+                        alertView(text: error, color: AppTheme.errorColor) { vm.errorMessage = nil }
+                    }
+                    if let success = vm.successMessage {
+                        alertView(text: success, color: AppTheme.successColor) { vm.successMessage = nil }
+                    }
 
-                            // 1. Vendeur
-                            sectionCard {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Sélection du Vendeur")
-                                        .font(.headline)
+                    if vm.isLoading {
+                        Spacer()
+                        ProgressView("Chargement...")
+                            .progressViewStyle(CircularProgressViewStyle())
+                        Spacer()
+                    } else {
+                        ScrollView {
+                            VStack(spacing: AppTheme.sectionSpacing) {
+
+                                // Section Vendeur
+                                sectionCard(icon: "person.crop.circle.badge.checkmark", title: "Sélection du Vendeur") {
                                     Picker("Vendeur", selection: $vm.selectedVendeurId) {
                                         Text("-- Sélectionnez un vendeur --").tag(Int?.none)
                                         ForEach(vm.vendeurs, id: \.id) { v in
@@ -45,28 +44,22 @@ struct DepositsView: View {
                                     }
                                     .pickerStyle(.menu)
                                 }
-                            }
 
-                            // 2. Session active
-                            if let session = vm.sessionActive {
-                                sectionCard(color: .green.opacity(0.1)) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Session Active : \(session.nom ?? "Sans nom")")
-                                            .font(.headline)
+                                // Session Active
+                                if let session = vm.sessionActive {
+                                    sectionCard(icon: "calendar.badge.clock", title: "Session Active", color: AppTheme.successColor.opacity(0.1)) {
+                                        Text("Nom : \(session.nom ?? "Sans nom")")
                                         Text("Frais de dépôt : \(session.fraisDepot, format: .number) \(session.modeFraisDepot == "pourcentage" ? "%" : "€")")
                                         Text("Commission : \(session.commissionRate, format: .number)%")
                                     }
+                                } else {
+                                    sectionCard(icon: "calendar.badge.exclamationmark", title: "Session") {
+                                        Text("Aucune session active").foregroundColor(.red)
+                                    }
                                 }
-                            } else {
-                                sectionCard {
-                                    Text("Aucune session active")
-                                        .foregroundColor(.red)
-                                }
-                            }
 
-                            // 3. Recherche & filtre
-                            sectionCard {
-                                VStack(alignment: .leading, spacing: 8) {
+                                // Filtres
+                                sectionCard(icon: "line.3.horizontal.decrease.circle", title: "Filtres") {
                                     TextField("🔍 Rechercher un jeu", text: $vm.searchTerm)
                                         .textFieldStyle(.roundedBorder)
                                     Picker("Filtrer par éditeur", selection: $vm.filterEditeur) {
@@ -77,71 +70,64 @@ struct DepositsView: View {
                                     }
                                     .pickerStyle(.menu)
                                 }
-                            }
-                            
-                            sectionCard {
-                                Button("Ajouter un jeu au catalogue") {
-                                    // On ouvre le formulaire de création de jeu
-                                    showGameCreationSheet = true
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .frame(maxWidth: .infinity)
-                            }
 
-                            // 4. Grille de jeux + pagination
-                            sectionCard {
-                                let pagedGames = vm.paginatedCatalog()
-                                if pagedGames.isEmpty {
-                                    Text("Aucun jeu trouvé.")
-                                        .foregroundColor(.gray)
-                                        .padding()
-                                } else {
-                                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
-                                        ForEach(pagedGames, id: \.id) { game in
-                                            GameCardView(
-                                                game: game,
-                                                isSelected: vm.selectedGame?.id == game.id
-                                            ) {
-                                                vm.selectedGame = game
+                                // Ajouter un jeu
+                                sectionCard(icon: "plus.circle", title: "Catalogue") {
+                                    Button {
+                                        showGameCreationSheet = true
+                                    } label: {
+                                        Label("Ajouter un jeu au catalogue", systemImage: "plus.square.on.square")
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                }
+
+                                // Grille des jeux
+                                sectionCard(icon: "rectangle.grid.2x2", title: "Catalogue") {
+                                    let pagedGames = vm.paginatedCatalog()
+                                    if pagedGames.isEmpty {
+                                        Text("Aucun jeu trouvé.").foregroundColor(.gray)
+                                    } else {
+                                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 16) {
+                                            ForEach(pagedGames, id: \.id) { game in
+                                                GameCardView(
+                                                    game: game,
+                                                    isSelected: vm.selectedGame?.id == game.id
+                                                ) {
+                                                    vm.selectedGame = game
+                                                }
                                             }
                                         }
-                                    }
-                                    .padding(.bottom, 10)
+                                        HStack {
+                                            Button {
+                                                if vm.currentPage > 0 { vm.currentPage -= 1 }
+                                            } label: {
+                                                Label("Préc", systemImage: "chevron.left")
+                                            }.disabled(vm.currentPage == 0)
 
-                                    HStack {
-                                        Button {
-                                            if vm.currentPage > 0 { vm.currentPage -= 1 }
-                                        } label: {
-                                            Label("Préc", systemImage: "chevron.left")
+                                            Spacer()
+                                            Text("Page \(vm.currentPage + 1) / \(max(vm.totalPages, 1))")
+                                            Spacer()
+
+                                            Button {
+                                                if vm.currentPage < vm.totalPages - 1 { vm.currentPage += 1 }
+                                            } label: {
+                                                Label("Suiv", systemImage: "chevron.right")
+                                            }.disabled(vm.currentPage >= vm.totalPages - 1)
                                         }
-                                        .disabled(vm.currentPage == 0)
-
-                                        Spacer()
-                                        Text("Page \(vm.currentPage + 1) / \(max(vm.totalPages, 1))")
-                                        Spacer()
-
-                                        Button {
-                                            if vm.currentPage < vm.totalPages - 1 { vm.currentPage += 1 }
-                                        } label: {
-                                            Label("Suiv", systemImage: "chevron.right")
-                                        }
-                                        .disabled(vm.currentPage >= vm.totalPages - 1)
+                                        .font(.footnote)
+                                        .padding(.top, 4)
                                     }
-                                    .font(.footnote)
-                                    .padding(.top, 4)
                                 }
-                            }
 
-                            // 5. Formulaire d'ajout
-                            if let selected = vm.selectedGame {
-                                addGameForm(selectedGame: selected)
-                            }
+                                // Formulaire ajout
+                                if let selected = vm.selectedGame {
+                                    addGameForm(selectedGame: selected)
+                                }
 
-                            // 6. Jeux à déposer
-                            if !vm.depositItems.isEmpty {
-                                sectionCard(color: .yellow.opacity(0.1)) {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("Jeux à déposer").font(.headline)
+                                // Liste jeux à déposer
+                                if !vm.depositItems.isEmpty {
+                                    sectionCard(icon: "shippingbox.fill", title: "Jeux à déposer", color: AppTheme.highlightBackground) {
                                         ForEach(vm.depositItems) { item in
                                             HStack {
                                                 Text("\(item.nom) - \(item.prixVente, format: .number)€ (\(item.etat.rawValue))")
@@ -154,35 +140,32 @@ struct DepositsView: View {
                                         }
                                     }
                                 }
-                            }
 
-                            // 7. Résumé
-                            if vm.sessionActive != nil {
-                                sectionCard {
-                                    VStack(alignment: .leading) {
-                                        Text("Résumé").font(.headline)
-                                        Text("Frais totaux : \(vm.calculateTotalDepositFees(), format: .number)€")
+                                // Résumé
+                                if vm.sessionActive != nil {
+                                    sectionCard(icon: "doc.plaintext", title: "Résumé") {
+                                        Text("Frais totaux : \(vm.calculateDepositFeesAvantRemise(), format: .number)€")
                                         Text("Remise totale : \(vm.calculateTotalRemise(), format: .number)€")
                                         Text("Nb d'items : \(vm.depositItems.count)")
                                     }
                                 }
-                            }
 
-                            // 8. Bouton valider
-                            Button("✅ Valider le dépôt") {
-                                if vm.validateDeposit() {
-                                    showConfirmDialog = true
+                                // Bouton final
+                                Button("✅ Valider le dépôt") {
+                                    if vm.validateDeposit() {
+                                        showConfirmDialog = true
+                                    }
                                 }
+                                .padding()
+                                .frame(maxWidth: .infinity)
+                                .background(vm.depositItems.isEmpty || vm.selectedVendeurId == nil ? Color.gray : AppTheme.successColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(AppTheme.cornerRadius)
+                                .disabled(vm.depositItems.isEmpty || vm.selectedVendeurId == nil)
                             }
+                            .frame(maxWidth: AppTheme.maxContentWidth)
                             .padding()
-                            .frame(maxWidth: .infinity)
-                            .background(vm.depositItems.isEmpty || vm.selectedVendeurId == nil ? Color.gray : Color.green)
-                            .foregroundColor(.white)
-                            .cornerRadius(10)
-                            .padding(.horizontal)
-                            .disabled(vm.depositItems.isEmpty || vm.selectedVendeurId == nil)
                         }
-                        .padding(.top)
                     }
                 }
             }
@@ -198,91 +181,100 @@ struct DepositsView: View {
                 Text("Vous allez payer \(vm.calculateTotalDepositFees(), format: .number)€ pour \(vm.depositItems.count) jeux.")
             }
             .sheet(isPresented: $showGameCreationSheet) {
-                         GameFormSheet(vm: catalogVM)
-                     }
+                GameFormSheet(vm: catalogVM)
+            }
         }
     }
 
-    // MARK: - Alert
+    // MARK: - Alert View
     private func alertView(text: String, color: Color, onClose: @escaping () -> Void) -> some View {
         HStack {
-            Text(text).foregroundColor(color)
+            Label(text, systemImage: "exclamationmark.triangle.fill")
+                .foregroundColor(color)
             Spacer()
-            Button("X", action: onClose)
+            Button(action: onClose) {
+                Image(systemName: "xmark.circle.fill")
+            }
+            .foregroundColor(color)
         }
         .padding()
         .background(color.opacity(0.1))
+        .cornerRadius(AppTheme.cornerRadius)
+        .frame(maxWidth: AppTheme.maxContentWidth)
+        .padding(.horizontal)
     }
 
-    // MARK: - Card wrapper
-    private func sectionCard<Content: View>(color: Color = Color(.systemGray6), @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 8, content: content)
-            .padding()
-            .background(color)
-            .cornerRadius(10)
-            .padding(.horizontal)
+    // MARK: - Section Wrapper
+    private func sectionCard<Content: View>(
+        icon: String,
+        title: String,
+        color: Color = AppTheme.secondaryBackground,
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Label(title, systemImage: icon)
+                .font(.headline)
+            content()
+        }
+        .padding()
+        .background(
+            color
+                .opacity(0.9)
+                .blur(radius: 0.2)
+                .background(.ultraThinMaterial)
+                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+        )
+        .cornerRadius(AppTheme.cornerRadius)
     }
-    
-    
 
+    // MARK: - Formulaire d’ajout de jeu
     @ViewBuilder
     private func addGameForm(selectedGame: Jeu) -> some View {
-        sectionCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Text("Ajouter \"\(selectedGame.nom)\" au dépôt")
-                    .font(.headline)
-                
-                // Prix
-                HStack {
-                    Text("Prix (€) :")
-                    TextField("Prix", value: $vm.tempPrice, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                }
-                
-                // Quantité
-                HStack {
-                    Text("Quantité :")
-                    TextField("Qté", value: $vm.tempQuantity, format: .number)
-                        .textFieldStyle(.roundedBorder)
-                        .frame(width: 60)
-                }
-                
-                // État
-                Picker("État", selection: $vm.tempEtat) {
-                    Text("Neuf").tag(GameDepositViewModel.EtatJeu.Neuf)
-                    Text("Occasion").tag(GameDepositViewModel.EtatJeu.Occasion)
-                }
-                .pickerStyle(.segmented)
-                
-                if vm.tempEtat == .Occasion {
-                    TextField("Détail de l'état", text: $vm.tempDetailEtat)
-                        .textFieldStyle(.roundedBorder)
-                }
-                
-                // Calculer la valeur max de la remise
-                let maxRemise: Double = {
-                    if let session = vm.sessionActive {
-                        if session.modeFraisDepot == "fixe" {
-                            return max(session.fraisDepot - 0.01, 0)
-                        } else { // mode "pourcentage"
-                            let price = vm.tempPrice
-                            return max(price * session.fraisDepot / 100 - 0.01, 0)
-                        }
-                    }
-                    return 50
-                }()
-                
-                VStack(alignment: .leading) {
-                    Text("Remise : \(vm.tempRemise, format: .number)€ (Max: \(maxRemise, format: .number)€)")
-                    Slider(value: $vm.tempRemise, in: 0...maxRemise, step: 1)
-                }
-                
-                Button("Ajouter au dépôt") {
-                    vm.addGameToDeposit()
-                }
-                .buttonStyle(.borderedProminent)
-                .padding(.top, 4)
+        sectionCard(icon: "plus.rectangle", title: "Ajouter \"\(selectedGame.nom)\"") {
+            HStack {
+                Text("Prix (€) :")
+                TextField("Prix", value: $vm.tempPrice, format: .number)
+                    .textFieldStyle(.roundedBorder)
             }
+
+            HStack {
+                Text("Quantité :")
+                TextField("Qté", value: $vm.tempQuantity, format: .number)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(width: 60)
+            }
+
+            Picker("État", selection: $vm.tempEtat) {
+                Text("Neuf").tag(GameDepositViewModel.EtatJeu.Neuf)
+                Text("Occasion").tag(GameDepositViewModel.EtatJeu.Occasion)
+            }
+            .pickerStyle(.segmented)
+
+            if vm.tempEtat == .Occasion {
+                TextField("Détail de l'état", text: $vm.tempDetailEtat)
+                    .textFieldStyle(.roundedBorder)
+            }
+
+            let maxRemise: Double = {
+                if let session = vm.sessionActive {
+                    if session.modeFraisDepot == "fixe" {
+                        return max(session.fraisDepot, 0)
+                    } else {
+                        return max(vm.tempPrice * session.fraisDepot / 100 , 0)
+                    }
+                }
+                return 50
+            }()
+
+            VStack(alignment: .leading) {
+                Text("Remise : \(vm.tempRemise, format: .number)€ (Max: \(maxRemise, format: .number)€)")
+                Slider(value: $vm.tempRemise, in: 0...maxRemise, step: 1)
+            }
+
+            Button("Ajouter au dépôt") {
+                vm.addGameToDeposit()
+            }
+            .buttonStyle(.borderedProminent)
         }
     }
 }

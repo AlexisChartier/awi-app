@@ -5,100 +5,100 @@ struct VendorsView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
-                // Zone d'erreur
+            VStack(spacing: 16) {
+                // 🔔 Zone d'erreur
                 if let error = vm.errorMessage {
-                    HStack {
-                        Text(error).foregroundColor(.red)
-                        Spacer()
-                        Button("X") {
-                            vm.errorMessage = nil
-                        }
+                    alertView(text: error, color: .red) {
+                        vm.errorMessage = nil
                     }
-                    .padding()
                 }
 
-                // Barre recherche + bouton créer
-                HStack {
+                // 🔍 Barre de recherche + ➕ Bouton création
+                HStack(spacing: 12) {
                     TextField("Recherche par nom ou email", text: $vm.searchTerm)
                         .textFieldStyle(.roundedBorder)
-                        .padding(.leading)
+                        .frame(maxWidth: .infinity)
 
-                    Button("Ajouter un Vendeur") {
+                    Button("➕ Ajouter") {
                         vm.openCreateForm()
                     }
                     .buttonStyle(.borderedProminent)
-                    .padding(.trailing)
                 }
+                .padding(.horizontal)
 
+                // 🔄 Chargement
                 if vm.loading {
+                    Spacer()
                     ProgressView("Chargement...")
+                    Spacer()
                 } else {
-                    // Liste paginée
+                    // 📋 Liste des vendeurs
                     List {
                         ForEach(vm.paginatedVendors, id: \.id) { v in
-                            // NavigationLink vers le dashboard vendeur
                             NavigationLink(destination: VendorDashboardView(vendor: v)) {
-                                // Row
-                                VStack(alignment: .leading) {
-                                    Text(v.nom).bold()
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(v.nom).font(.headline)
                                     Text("Email: \(v.email)")
-                                    Text("Téléphone: \(v.telephone)")
-                                        .foregroundColor(.secondary)
+                                    Text("Téléphone: \(v.telephone)").foregroundColor(.secondary)
                                 }
                             }
-                            .swipeActions(edge: .trailing, allowsFullSwipe:false) {
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     vm.vendorToDelete = v
                                     vm.showDeleteConfirm = true
                                 } label: {
                                     Label("Supprimer", systemImage: "trash")
                                 }
+
                                 Button {
                                     vm.openEditForm(vendor: v)
                                 } label: {
-                                    Label("Éditer", systemImage:"pencil")
+                                    Label("Éditer", systemImage: "pencil")
                                 }
                                 .tint(.blue)
                             }
+                            
                         }
+                        
                         if vm.paginatedVendors.isEmpty {
                             Text("Aucun vendeur à afficher.")
                                 .foregroundColor(.gray)
+                                .padding()
                         }
                     }
+                    .listStyle(.insetGrouped)
                 }
 
-                // Pagination
+                // 📘 Pagination
                 if vm.totalPages > 1 {
-                    HStack {
-                        Button("Précédent") {
+                    HStack(spacing: 16) {
+                        Button("◀️ Précédent") {
                             vm.goToPage(vm.currentPage - 1)
                         }
                         .disabled(vm.currentPage == 1)
 
                         Text("Page \(vm.currentPage) / \(vm.totalPages)")
+                            .font(.subheadline)
 
-                        Button("Suivant") {
+                        Button("Suivant ▶️") {
                             vm.goToPage(vm.currentPage + 1)
                         }
                         .disabled(vm.currentPage == vm.totalPages)
                     }
-                    .padding(.vertical, 5)
+                    .padding(.vertical, 8)
                 }
             }
-            .navigationTitle("Gestion des Vendeurs")
-            // --- NOUVEAUTÉ : Bouton pour passer à la gestion des acheteurs ---
+            .padding(.top)
+            .navigationTitle("🧑‍💼 Gestion des Vendeurs")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink("Acheteurs", destination: BuyersView())
                 }
             }
-            // ---
             .onAppear {
                 vm.loadVendors()
             }
-            // Alerte suppression
+            // 🔥 Alerte suppression
             .alert("Supprimer ce vendeur ?", isPresented: $vm.showDeleteConfirm, actions: {
                 Button("Annuler", role: .cancel) {}
                 Button("Supprimer", role: .destructive) {
@@ -109,28 +109,52 @@ struct VendorsView: View {
                     Text("Voulez-vous vraiment supprimer \(vend.nom) ?")
                 }
             })
-            // Sheet de création/édition
+            // 📄 Formulaire
             .sheet(isPresented: $vm.showFormSheet) {
                 VendorFormSheet(vm: vm)
             }
         }
     }
+
+    // Reusable alert view
+    private func alertView(text: String, color: Color, onClose: @escaping () -> Void) -> some View {
+        HStack {
+            Text(text).foregroundColor(color)
+            Spacer()
+            Button("X", action: onClose)
+        }
+        .padding()
+        .background(color.opacity(0.1))
+        .cornerRadius(8)
+        .padding(.horizontal)
+    }
 }
 
+
 // MARK: - Sous-vue: Formulaire (inchangé)
+import SwiftUI
+
 struct VendorFormSheet: View {
     @ObservedObject var vm: VendorsViewModel
 
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(vm.isEditMode ? "Modifier un Vendeur" : "Nouveau Vendeur")) {
+                Section(header: Text(vm.isEditMode ? "✏️ Modifier un Vendeur" : "➕ Nouveau Vendeur")) {
                     TextField("Nom", text: $vm.currentVendor.nom)
+                        .textContentType(.name)
+                        .autocapitalization(.words)
+
                     TextField("Email", text: $vm.currentVendor.email)
+                        .keyboardType(.emailAddress)
+                        .textContentType(.emailAddress)
+
                     TextField("Téléphone", text: $vm.currentVendor.telephone)
+                        .keyboardType(.phonePad)
+                        .textContentType(.telephoneNumber)
                 }
             }
-            .navigationTitle(vm.isEditMode ? "Éditer" : "Créer")
+            .navigationTitle(vm.isEditMode ? "Éditer Vendeur" : "Créer Vendeur")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Annuler") {
@@ -141,6 +165,7 @@ struct VendorFormSheet: View {
                     Button(vm.isEditMode ? "Enregistrer" : "Créer") {
                         vm.saveVendorForm()
                     }
+                    .disabled(vm.currentVendor.nom.isEmpty || vm.currentVendor.email.isEmpty)
                 }
             }
         }

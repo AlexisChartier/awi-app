@@ -210,48 +210,75 @@ struct CartSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(alignment: .leading) {
                 Text("🛒 Panier")
-                    .font(.title2.bold())
+                    .font(.largeTitle.bold())
                     .padding(.top)
 
                 if vm.cart.isEmpty {
-                    Text("Aucun article")
+                    Spacer()
+                    Text("Aucun article dans le panier")
                         .foregroundColor(.gray)
-                        .padding()
+                        .frame(maxWidth: .infinity, alignment: .center)
+                    Spacer()
                 } else {
                     List {
                         ForEach(vm.cart, id: \.depot_jeu_id) { item in
                             let game = vm.allGames.first { $0.id == item.jeu_id }
-                            HStack {
-                                Text(game?.nom ?? "Jeu")
+
+                            HStack(spacing: 12) {
+                                AsyncImage(url: URL(string: game?.image ?? "")) { phase in
+                                    if let image = phase.image {
+                                        image.resizable().scaledToFill()
+                                    } else {
+                                        Color.gray
+                                    }
+                                }
+                                .frame(width: 60, height: 60)
+                                .cornerRadius(8)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(game?.nom ?? "Jeu inconnu")
+                                        .font(.headline)
+                                    Text("Prix : \(item.prix_vente, format: .number)€")
+                                        .font(.subheadline)
+                                    if let barcode = item.identifiant_unique {
+                                        Text("Code : \(barcode)")
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                }
+
                                 Spacer()
-                                Text("\(item.prix_vente, format: .number)€")
+
+                                Button {
+                                    vm.removeFromCart(item)
+                                } label: {
+                                    Image(systemName: "trash")
+                                        .foregroundColor(.red)
+                                }
                             }
-                            .onTapGesture {
-                                vm.removeFromCart(item)
-                            }
+                            .padding(.vertical, 6)
                         }
                     }
+                    .listStyle(.plain)
 
                     Text("Total: \(vm.totalSalePrice, specifier: "%.2f")€")
-                        .bold()
+                        .font(.title2.bold())
                         .padding(.top)
 
                     Button("💰 Finaliser la vente") {
                         vm.finalizeSale()
                     }
                     .buttonStyle(.borderedProminent)
-                    .padding(.top)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical)
                 }
-
-                Spacer()
             }
             .padding()
             .sheet(isPresented: $vm.showBuyerDialog) {
                 BuyerSelectionSheet(vm: vm)
             }
-
         }
     }
 }

@@ -1,19 +1,17 @@
-//
-//  ManagerTabView.swift
-//  awi-app
-//
-//  Created by etud on 17/03/2025.
-//
-
-
 import SwiftUI
 
 struct ManagerTabView: View {
-    @EnvironmentObject var vm:AuthViewModel
+    @EnvironmentObject var vm: AuthViewModel
+
+    init() {
+        UITabBar.appearance().backgroundColor = UIColor.systemGroupedBackground
+    }
+
     var body: some View {
         TabView {
             NavigationStack {
                 DepositsView()
+                    .navigationTitle("Dépôts")
             }
             .tabItem {
                 Label("Dépôts", systemImage: "tray.and.arrow.down.fill")
@@ -21,6 +19,7 @@ struct ManagerTabView: View {
 
             NavigationStack {
                 SaleView()
+                    .navigationTitle("Ventes")
             }
             .tabItem {
                 Label("Ventes", systemImage: "cart.fill")
@@ -28,13 +27,15 @@ struct ManagerTabView: View {
 
             NavigationStack {
                 VendorsView()
+                    .navigationTitle("Vendeurs")
             }
             .tabItem {
-                Label("Vendeurs", systemImage: "person.crop.rectangle.stack")
+                Label("Vendeurs", systemImage: "person.3.fill")
             }
 
             NavigationStack {
                 CatalogView()
+                    .navigationTitle("Catalogue")
             }
             .tabItem {
                 Label("Catalogue", systemImage: "book.fill")
@@ -42,32 +43,39 @@ struct ManagerTabView: View {
 
             NavigationStack {
                 FinancialView()
+                    .navigationTitle("Bilan Financier")
             }
             .tabItem {
                 Label("Bilan", systemImage: "doc.text.fill")
             }
-            NavigationStack{
+
+            NavigationStack {
                 SettingsView(vm: vm)
             }
-            .tabItem{
-                Label("Paramètres", systemImage: "gearshape")
+            .tabItem {
+                Label("Compte", systemImage: "gear")
             }
         }
+        .accentColor(.indigo)
     }
 }
 
 struct SettingsView: View {
     @ObservedObject var vm: AuthViewModel
+
     var body: some View {
-        VStack {
-            Button("Se déconnecter") {
-                vm.logoutAction()
+        Form {
+            Section(header: Text("Session")) {
+                Button(role: .destructive) {
+                    vm.logoutAction()
+                } label: {
+                    Label("Se déconnecter", systemImage: "rectangle.portrait.and.arrow.forward")
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .padding()
         }
-        .navigationTitle("Compte")
+        .navigationTitle("Paramètres")
     }
 }
+
 
 

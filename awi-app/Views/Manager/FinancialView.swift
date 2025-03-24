@@ -1,27 +1,30 @@
 import SwiftUI
 import QuickLook
+
 struct FinancialView: View {
     @StateObject var vm = FinancialViewModel()
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 20) {
                 Text("📊 Bilan Financier")
                     .font(.largeTitle.bold())
-                    .padding(.top, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top)
 
+                // 🔔 Alertes
                 if let err = vm.errorMessage {
                     alertView(text: err, color: .red) {
                         vm.errorMessage = nil
                     }
                 }
-
                 if let succ = vm.successMessage {
                     alertView(text: succ, color: .green) {
                         vm.successMessage = nil
                     }
                 }
 
+                // 🔄 Chargement
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement des données...")
@@ -29,9 +32,8 @@ struct FinancialView: View {
                     Spacer()
                 } else {
                     ScrollView {
-                        VStack(spacing: 20) {
-                            // Session Section
-                            sectionCard(title: "Générer le bilan d'une session") {
+                        VStack(spacing: 24) {
+                            sectionCard(title: "📅 Bilan par Session") {
                                 Picker("Sélectionner une session", selection: $vm.selectedSession) {
                                     ForEach(vm.sessions, id: \.id) { s in
                                         Text("Session #\(s.nom)").tag(s as Session?)
@@ -39,39 +41,44 @@ struct FinancialView: View {
                                 }
                                 .pickerStyle(.menu)
 
-                                Button("📄 Télécharger le bilan de session") {
+                                Button {
                                     vm.generateSessionReport()
+                                } label: {
+                                    Label("Télécharger le bilan", systemImage: "arrow.down.doc")
+                                        .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
-                                .tint(.blue)
                                 .disabled(vm.selectedSession == nil)
                             }
 
-                            // Vendeur Section
-                            sectionCard(title: "Générer le bilan d'un vendeur") {
+                            sectionCard(title: "👤 Bilan par Vendeur") {
                                 Picker("Sélectionner un vendeur", selection: $vm.selectedVendeurId) {
                                     Text("-- Choisissez un vendeur --").tag(Optional<Int>.none)
                                     ForEach(vm.vendeurs, id: \.id) { v in
-                                        Text("\(v.nom) (#\(v.id))").tag(Optional<Int>(v.id!))
+                                        Text("\(v.nom) (#\(v.id))").tag(v.id!)
                                     }
                                 }
                                 .pickerStyle(.menu)
 
-                                Button("📄 Télécharger le bilan vendeur") {
+                                Button {
                                     vm.generateVendorReport()
+                                } label: {
+                                    Label("Télécharger le bilan", systemImage: "arrow.down.doc")
+                                        .frame(maxWidth: .infinity)
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(.green)
                                 .disabled(vm.selectedSession == nil || vm.selectedVendeurId == nil)
                             }
                         }
-                        .padding(.top, 20)
+                        .padding(.top)
                     }
                 }
 
                 Spacer()
             }
             .padding()
+            .navigationBarHidden(true)
             .onAppear {
                 vm.loadData()
             }
@@ -107,6 +114,7 @@ struct FinancialView: View {
         .padding(.horizontal)
     }
 }
+
 
 struct QuickLookPreview: UIViewControllerRepresentable {
     let fileURL: URL

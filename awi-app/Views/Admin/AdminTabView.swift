@@ -1,19 +1,17 @@
-//
-//  AdminTabView.swift
-//  awi-app
-//
-//  Created by etud on 17/03/2025.
-//
-
-
 import SwiftUI
 
 struct AdminTabView: View {
-    @EnvironmentObject var vm:AuthViewModel
+    @EnvironmentObject var vm: AuthViewModel
+
+    init() {
+        UITabBar.appearance().backgroundColor = UIColor.systemGroupedBackground
+    }
+
     var body: some View {
         TabView {
             NavigationStack {
                 UserManagementView()
+                    .navigationTitle("Utilisateurs")
             }
             .tabItem {
                 Label("Utilisateurs", systemImage: "person.2.fill")
@@ -21,6 +19,7 @@ struct AdminTabView: View {
 
             NavigationStack {
                 SessionManagementView()
+                    .navigationTitle("Sessions")
             }
             .tabItem {
                 Label("Sessions", systemImage: "calendar.badge.clock")
@@ -28,16 +27,19 @@ struct AdminTabView: View {
 
             NavigationStack {
                 StatsView()
+                    .navigationTitle("Statistiques")
             }
             .tabItem {
                 Label("Stats", systemImage: "chart.bar.xaxis")
             }
-            NavigationStack{
+
+            NavigationStack {
                 SettingsView(vm: vm)
             }
-            .tabItem{
-                Label("Paramètres", systemImage: "gearshape")
+            .tabItem {
+                Label("Compte", systemImage: "gear")
             }
         }
+        .accentColor(.blue) // Personnalise la couleur principale du TabView
     }
 }

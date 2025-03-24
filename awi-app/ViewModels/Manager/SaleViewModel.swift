@@ -21,6 +21,8 @@ class SaleViewModel: ObservableObject {
     @Published var showDetailModal = false
     @Published var selectedSale: VenteRequest?
     @Published var saleDetails: [VenteJeuRequest] = []
+    @Published var allGames: [Jeu] = []
+
     // acheteur
     @Published var buyer: Acheteur?
 
@@ -29,10 +31,25 @@ class SaleViewModel: ObservableObject {
             do {
                 let allS = try await SessionService.shared.getAll()
                 self.sessions = allS
+                self.allGames = try await JeuService.shared.getAllJeux()
+                
+                // 🔥 Sélectionner la session active automatiquement
+                if let activeSession = allS.first(where: { $0.statut == "active" }) {
+                    self.selectedSessionId = activeSession.id
+                    self.loadSales()
+                }
+
             } catch {
                 errorMessage = "Erreur chargement sessions"
             }
         }
+    }
+
+    
+    func gameForDepotId(_ depotId: Int?) -> Jeu? {
+        guard let depotId = depotId else { return nil }
+        // Tu peux ajuster selon comment relier dépôt → jeu
+        return allGames.first(where: { $0.id == depotId })
     }
 
     func loadSales() {

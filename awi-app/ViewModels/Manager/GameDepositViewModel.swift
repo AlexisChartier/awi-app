@@ -140,8 +140,24 @@ class GameDepositViewModel: ObservableObject {
         let totalRemise = calculateTotalRemise()
         return max(0, total - totalRemise)
     }
+    
+    func calculateDepositFeesAvantRemise() -> Double {
+        guard let session = sessionActive else { return 0 }
+        var total: Double = 0
+        for item in depositItems {
+            if session.modeFraisDepot == "pourcentage" {
+                let frais = item.prixVente * (session.fraisDepot / 100)
+                total += frais
+            } else {
+                total += session.fraisDepot
+            }
+        }
+        return total
+    }
 
     func validateDeposit() -> Bool {
+        print(calculateTotalRemise())
+        print(calculateTotalDepositFees())
         guard let _ = selectedVendeurId,
               let _ = sessionActive else {
             errorMessage = "Veuillez sélectionner un vendeur et une session."
@@ -151,7 +167,10 @@ class GameDepositViewModel: ObservableObject {
             errorMessage = "Aucun jeu à déposer."
             return false
         }
-        if calculateTotalDepositFees() < calculateTotalRemise() {
+        if calculateDepositFeesAvantRemise() == calculateTotalRemise(){
+            return true
+        }
+        if calculateDepositFeesAvantRemise() < calculateTotalRemise() {
             errorMessage = "La remise totale est supérieure aux frais de dépôt."
             return false
         }

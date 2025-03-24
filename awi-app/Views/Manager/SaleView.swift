@@ -6,27 +6,29 @@ struct SaleView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                // ⚠️ Message d’erreur
                 if let err = vm.errorMessage {
                     Text(err)
                         .foregroundColor(.red)
                         .padding(.horizontal)
                 }
 
-                // 🔁 Bouton vers nouvelle vente
-                NavigationLink(destination: GameSaleView()) {
-                    Label("Effectuer une Vente", systemImage: "plus")
-                        .padding(.vertical, 6)
+                // Bouton "Nouvelle vente" uniquement si la session est active
+                if let selectedSession = vm.sessions.first(where: { $0.id == vm.selectedSessionId }),
+                   selectedSession.statut == "active" {
+                    NavigationLink(destination: GameSaleView()) {
+                        Label("Effectuer une Vente", systemImage: "plus")
+                            .padding(.vertical, 6)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .padding(.horizontal)
                 }
-                .buttonStyle(.borderedProminent)
-                .padding(.horizontal)
 
-                // 🎛️ Filtres & tri
+                // Filtres & tri
                 HStack(spacing: 12) {
                     Picker("Session", selection: $vm.selectedSessionId) {
                         Text("-- Choisir --").tag(Optional<Int>.none)
                         ForEach(vm.sessions, id: \.id) { s in
-                            Text(s.nom!).tag(Optional<Int>(s.id))
+                            Text(s.nom ?? "Session #\(s.id)").tag(Optional<Int>(s.id))
                         }
                     }
                     .onChange(of: vm.selectedSessionId) { _ in vm.loadSales() }
@@ -41,7 +43,6 @@ struct SaleView: View {
                 }
                 .padding(.horizontal)
 
-                // ⏳ Chargement
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement ventes...")
@@ -58,17 +59,15 @@ struct SaleView: View {
                             }
                         }
 
-                        // 📄 Pagination
+                        // Pagination
                         HStack {
                             Button("◀︎") {
                                 vm.goToPage(vm.currentPage - 1)
                             }.disabled(vm.currentPage <= 1)
 
                             Spacer()
-
                             Text("Page \(vm.currentPage)/\(vm.totalPages)")
                                 .font(.footnote)
-
                             Spacer()
 
                             Button("▶︎") {
@@ -92,6 +91,7 @@ struct SaleView: View {
     }
 }
 
+// 📄 Carte d’une vente
 struct SaleCardView: View {
     let sale: VenteRequest
 
@@ -117,28 +117,7 @@ struct SaleCardView: View {
     }
 }
 
-// Sous-vue : rangée d'une vente
-struct SaleRowView: View {
-    let sale: VenteRequest  // Ajustez selon votre type
-
-    var body: some View {
-        HStack {
-            // On décompose l'expression
-            let sid = sale.vente_id ?? -1
-            Text("Vente #\(sid)")
-
-            Spacer()
-
-            Text("\(sale.montant_total, format: .number)€")
-
-            if let dv = sale.date_vente {
-                Text(dv)
-            }
-        }
-    }
-}
-
-
+// 📋 Détail d'une vente
 struct SaleDetailSheet: View {
     @ObservedObject var vm: SaleViewModel
     let sale: VenteRequest
@@ -164,14 +143,29 @@ struct SaleDetailSheet: View {
 
                 List {
                     ForEach(vm.saleDetails, id: \.depot_jeu_id) { detail in
-                        let depotId = detail.depot_jeu_id ?? -1
-                        let price = detail.prix_vente ?? 0.0
+                        HStack(alignment: .top, spacing: 12) {
+                            if let game = vm.gameForDepotId(detail.depot_jeu_id) {
+                                AsyncImage(url: URL(string: game.image ?? "")) { phase in
+                                    if let image = phase.image {
+                                        image.resizable().scaledToFill()
+                                    } else {
+                                        Color.gray
+                                    }
+                                }
+                                .frame(width: 40, height: 40)
+                                .cornerRadius(5)
+                            }
 
-                        HStack {
-                            Text("Depot #\(depotId)")
+                            VStack(alignment: .leading) {
+                                Text(vm.gameForDepotId(detail.depot_jeu_id)?.nom ?? "Jeu inconnu")
+                                    .bold()
+                                Text("Prix : \(detail.prix_vente ?? 0.0, format: .currency(code: "EUR"))")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                             Spacer()
-                            Text("\(price, format: .currency(code: "EUR"))")
                         }
+                        .padding(.vertical, 4)
                     }
                 }
 

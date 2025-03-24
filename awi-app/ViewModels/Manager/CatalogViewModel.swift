@@ -5,7 +5,7 @@ class CatalogViewModel: ObservableObject {
     @Published var jeux: [Jeu] = []
     @Published var searchTerm: String = ""
     @Published var filterEditeur: String = ""
-    @Published var sortKey: SortKey? = nil     // .nom, .auteur, .editeur
+    @Published var sortKey: SortKey? = .nom // 🔥 tri alphabétique par défaut
     @Published var sortAsc: Bool = true
 
     @Published var selectedGames: Set<Int> = []
@@ -14,7 +14,7 @@ class CatalogViewModel: ObservableObject {
 
     // Pagination
     @Published var currentPage: Int = 0
-    let itemsPerPage = 50
+    let itemsPerPage = 8
 
     // Création / Édition
     @Published var showFormDialog = false
@@ -42,6 +42,8 @@ class CatalogViewModel: ObservableObject {
             do {
                 let fetched = try await JeuService.shared.getAllJeux()
                 self.jeux = fetched
+                self.sortKey = .nom       // tri par défaut
+                self.sortAsc = true
             } catch {
                 self.errorMessage = "Erreur chargement catalogue: \(error)"
             }
@@ -49,21 +51,29 @@ class CatalogViewModel: ObservableObject {
         }
     }
 
+
     // Filtrage
     var filteredJeux: [Jeu] {
+        // Aucun filtre → retourner tous les jeux
+        if searchTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+            filterEditeur.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return jeux
+        }
+
         let lower = searchTerm.lowercased()
         return jeux.filter { jeu in
-            // Filtrer sur nom/auteur/editeur
             let matchSearch =
                 jeu.nom.lowercased().contains(lower) ||
                 (jeu.auteur?.lowercased().contains(lower) ?? false) ||
                 (jeu.editeur?.lowercased().contains(lower) ?? false)
+
             let matchEd = filterEditeur.isEmpty
                 || (jeu.editeur?.lowercased() == filterEditeur.lowercased())
 
             return matchSearch && matchEd
         }
     }
+
 
     // Tri
     var sortedJeux: [Jeu] {
