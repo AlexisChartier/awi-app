@@ -170,10 +170,19 @@ class VenteService {
         let request = try Api.shared.makeRequest(endpoint: "/api/ventes/finalize", method: "POST", body: body)
         let (resData, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 || httpResponse.statusCode == 201 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
+            let debugBody = String(data: resData, encoding: .utf8) ?? "Aucune donnée"
+            print("Erreur: la réponse n'est pas un HTTPURLResponse. Corps:\n\(debugBody)")
             throw URLError(.badServerResponse)
         }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            // On logge le statut et le corps
+            let debugBody = String(data: resData, encoding: .utf8) ?? "Aucune donnée"
+            print("Erreur HTTP \(httpResponse.statusCode). Corps:\n\(debugBody)")
+            throw URLError(.badServerResponse)
+        }
+
 
         // Suppose { vente: VenteRequest }
         struct FinalizeResponse: Codable {

@@ -97,6 +97,7 @@ class SessionManagementViewModel: ObservableObject {
                     showFormSheet = false
                 } catch {
                     self.errorMessage = "Erreur enregistrement session"
+                    print(error)
                 }
             }
         } else {

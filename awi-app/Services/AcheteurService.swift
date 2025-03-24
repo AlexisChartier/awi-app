@@ -11,6 +11,23 @@ import Foundation
 class AcheteurService {
     static let shared = AcheteurService()
     private init() {}
+    
+    func searchBuyer(search: String) async throws -> [Acheteur]{
+        let request = try Api.shared.makeRequest(endpoint: "/api/acheteurs/search/\(search)", method: "GET")
+        let (data,response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        print(httpResponse)
+        struct AcheteurSearchResponse: Codable{
+            let acheteurs:[Acheteur]
+        }
+        let decoded = try JSONDecoder().decode(AcheteurSearchResponse.self, from: data)
+        print(decoded.acheteurs)
+        return decoded.acheteurs
+    }
 
     /// Liste des acheteurs
     func fetchAllAcheteurs() async throws -> [Acheteur] {
@@ -87,8 +104,13 @@ class AcheteurService {
               httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
+        
+        struct AcheteurUpdateResponse: Codable{
+            let message: String
+            let acheteur: Acheteur
+        }
 
-        return try JSONDecoder().decode(Acheteur.self, from: data)
+        return try JSONDecoder().decode(AcheteurUpdateResponse.self, from: data).acheteur
     }
 
     /// Suppression

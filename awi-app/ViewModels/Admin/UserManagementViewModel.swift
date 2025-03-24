@@ -78,11 +78,13 @@ class UserManagementViewModel: ObservableObject {
                         motDePasse: formPassword,
                         role: formRole
                     )
+                    print(updated)
                     let r = try await UserService.shared.updateUser(id: u.id!, data: updated)
                     await loadUsers()
                     showFormSheet = false
                 } catch {
                     errorMessage = "Erreur enregistrement user"
+                    print(error)
                 }
             }
         } else {

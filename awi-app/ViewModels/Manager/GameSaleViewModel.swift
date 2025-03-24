@@ -98,8 +98,11 @@ class GameSaleViewModel: ObservableObject {
     }
 
     var totalSalePrice: Double {
-        cart.reduce(into: 0) { $0 + $1.prix_vente }
+        cart.reduce(0.0) { acc, depot in
+            acc + (Double(depot.prix_vente ?? -1) ?? 0.0)
+        }
     }
+
 
     func generateBarcode(_ depot: DepotJeuRequest) {
         Task {
@@ -122,6 +125,26 @@ class GameSaleViewModel: ObservableObject {
         }
         showBuyerDialog = true
     }
+    func searchBuyer(email: String) async -> [Acheteur] {
+        do {
+            return try await AcheteurService.shared.searchBuyer(search: email)
+        } catch {
+            self.errorMessage = "Erreur lors de la recherche acheteur"
+            print(error)
+            return []
+        }
+    }
+
+    func createBuyer(nom: String, email: String, tel: String, adresse: String) async -> Int? {
+        do {
+            let a = Acheteur(id: 0, nom: nom, email: email, telephone: tel, adresse: adresse)
+            let created = try await AcheteurService.shared.createAcheteur(a)
+            return created.id
+        } catch {
+            self.errorMessage = "Erreur lors de la création acheteur"
+            return nil
+        }
+    }
 
     // ensuite, buyer stuff + confirmSale => SaleService
     func confirmSale() {
@@ -129,29 +152,45 @@ class GameSaleViewModel: ObservableObject {
             errorMessage = "Pas de session active"
             return
         }
+        print(selectedBuyerId)
+
         Task {
             do {
-                //let vente = try VenteRequest(
-                    // acheteur_id => needInvoice ? selectedBuyerId : nil
-                    //acheteur_id: needInvoice ? selectedBuyerId : nil,
-                    //montant_total: totalSalePrice,
-                    //session_id: sess.id
-                    //from: <#any Decoder#>)
-                // On suppose qu’on a un struct “VenteJeuRequest”
-                let details = cart.map { d in
-                    VenteJeuRequest(
-                        vente_id: nil, depot_jeu_id: d.depot_jeu_id,
-                        prix_vente: d.prix_vente,
-                        commission: d.prix_vente * (commissionRate / 100.0)
+                let montantTotal = cart.reduce(0.0) { acc, depot in
+                    acc + (Double(depot.prix_vente ?? -1) ?? 0.0)
+                }
+
+                let isoFormatter = ISO8601DateFormatter()
+                // isoFormatter.timeZone = TimeZone.current // ou .utc, selon votre besoin
+                let dateString = isoFormatter.string(from: Date())
+                let venteRequest = VenteRequest(
+                    vente_id: nil,
+                    acheteur_id: needInvoice ? selectedBuyerId : nil,
+                    date_vente:dateString,
+                    montant_total: montantTotal,
+                    session_id: sess.id
+                )
+
+                let venteJeuxDetails: [VenteJeuRequest] = cart.map {
+                    let prix = Double($0.prix_vente ?? -1) ?? 0.0
+                    return VenteJeuRequest(
+                        vente_id: nil,
+                        depot_jeu_id: $0.depot_jeu_id,
+                        prix_vente: prix,
+                        commission: prix * (commissionRate / 100.0)
                     )
                 }
-                //let final = try await VenteService.shared.finalizeSale(venteData: vente, venteJeuxData: details)
-                //successMessage = "Vente #\(final.vente_id ?? -1) enregistrée!"
+
+                let final = try await VenteService.shared.finalizeSale(venteData: venteRequest, venteJeuxData: venteJeuxDetails)
+
+                successMessage = "Vente #\(final.vente_id ?? -1) enregistrée!"
                 cart.removeAll()
                 showBuyerDialog = false
             } catch {
-                errorMessage = "Erreur finalisation vente"
+                print("Erreur confirmSale: \(error)")
+                errorMessage = "Erreur lors de l'enregistrement de la vente."
             }
         }
     }
+
 }

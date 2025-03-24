@@ -27,6 +27,9 @@ class CatalogViewModel: ObservableObject {
 
     // CSV Import
     @Published var csvFileData: Data? = nil
+    
+    @Published var showDetailSheet = false
+    @Published var detailGame: Jeu? = nil
 
     // Tri possible
     enum SortKey {
@@ -181,6 +184,14 @@ class CatalogViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    func openDetailDialog(_ jeu: Jeu) {
+        detailGame = jeu
+        showDetailSheet = true
+    }
+    func closeDetailDialog() {
+        showDetailSheet = false
+        detailGame = nil
+    }
     func saveGame(_ newGame: Jeu, imageFile: Data?) {
         Task {
             do {

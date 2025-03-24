@@ -48,25 +48,4 @@ class DepositsViewModel: ObservableObject {
             }
         }
     }
-
-    func updateDepotStatut(depotId: Int, statut: String) {
-        loading = true
-        Task {
-            do {
-                try await DepotJeuService.shared.updateDepotStatut(depotId: depotId, statut: statut)
-                // Mettre à jour localement
-                await MainActor.run {
-                    if let idx = self.depots.firstIndex(where: { $0.depot_jeu_id == depotId }) {
-                        self.depots[idx].statut = statut
-                    }
-                    self.loading = false
-                }
-            } catch {
-                await MainActor.run {
-                    self.errorMessage = "Erreur update statut depot: \(error)"
-                    self.loading = false
-                }
-            }
-        }
-    }
 }

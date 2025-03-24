@@ -95,7 +95,12 @@ class VendeurService {
             throw URLError(.badServerResponse)
         }
         
-        return try JSONDecoder().decode(Vendeur.self, from: data)
+        struct VendeurUpdateResponse: Codable{
+            let message: String
+            let vendeur: Vendeur
+        }
+        
+        return try JSONDecoder().decode(VendeurUpdateResponse.self, from: data).vendeur
     }
 
     /// Supprimer un vendeur

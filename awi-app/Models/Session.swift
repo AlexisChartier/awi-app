@@ -62,12 +62,21 @@ struct Session: Identifiable, Codable, Hashable {
         self.modeFraisDepot = try container.decode(String.self, forKey: .modeFraisDepot)
 
         // frais_depot => on récupère un String et on le convertit en Double
-        let fraisString = try container.decode(String.self, forKey: .fraisDepot)
-        self.fraisDepot = Double(fraisString) ?? 0.0
+        // frais_depot : accepté sous forme de string OU nombre
+        if let fraisStr = try? container.decode(String.self, forKey: .fraisDepot) {
+            self.fraisDepot = Double(fraisStr) ?? 0.0
+        } else {
+            self.fraisDepot = try container.decode(Double.self, forKey: .fraisDepot)
+        }
+
 
         // commission_rate => pareil
-        let commissionString = try container.decode(String.self, forKey: .commissionRate)
-        self.commissionRate = Double(commissionString) ?? 0.0
+        if let comStr = try? container.decode(String.self, forKey: .commissionRate) {
+            self.commissionRate = Double(comStr) ?? 0.0
+        } else {
+            self.commissionRate = try container.decode(Double.self, forKey: .commissionRate)
+        }
+
 
         // administrateur_id
         self.administrateurId = try container.decodeIfPresent(Int.self, forKey: .administrateurId)

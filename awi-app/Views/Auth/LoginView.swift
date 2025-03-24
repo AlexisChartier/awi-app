@@ -70,7 +70,6 @@ struct LoginView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Connexion")
         }
         .onChange(of: authVM.isAuthenticated) { _, newValue in
             if newValue {

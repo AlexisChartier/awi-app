@@ -1,5 +1,5 @@
 import SwiftUI
-
+import QuickLook
 struct FinancialView: View {
     @StateObject var vm = FinancialViewModel()
 
@@ -75,6 +75,9 @@ struct FinancialView: View {
             .onAppear {
                 vm.loadData()
             }
+            .sheet(item: $vm.previewURL) { identifiable in
+                QuickLookPreview(fileURL: identifiable.url)
+            }
         }
     }
 
@@ -104,3 +107,35 @@ struct FinancialView: View {
         .padding(.horizontal)
     }
 }
+
+struct QuickLookPreview: UIViewControllerRepresentable {
+    let fileURL: URL
+
+    func makeUIViewController(context: Context) -> QLPreviewController {
+        let controller = QLPreviewController()
+        controller.dataSource = context.coordinator
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: QLPreviewController, context: Context) {}
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(fileURL: fileURL)
+    }
+
+    class Coordinator: NSObject, QLPreviewControllerDataSource {
+        let fileURL: URL
+        init(fileURL: URL) {
+            self.fileURL = fileURL
+        }
+
+        func numberOfPreviewItems(in controller: QLPreviewController) -> Int {
+            return 1
+        }
+
+        func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem {
+            return fileURL as QLPreviewItem
+        }
+    }
+}
+

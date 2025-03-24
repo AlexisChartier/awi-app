@@ -213,9 +213,8 @@ class DepotJeuService {
     }
 
     /// PUT /depots/{id} => on y passe { statut }
-    func updateDepotStatut(depotId: Int, statut: String) async throws {
-        let body = try JSONEncoder().encode(["statut": statut])
-        let request = try Api.shared.makeRequest(endpoint: "/api/depots/\(depotId)", method: "PUT", body: body)
+    func updateDepotStatut(depotId: Int) async throws {
+        let request = try Api.shared.makeRequest(endpoint: "/api/depots/retire/\(depotId)", method: "PUT")
         let (_, response) = try await URLSession.shared.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse,

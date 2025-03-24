@@ -47,18 +47,19 @@ struct VendorsView: View {
                                         .foregroundColor(.secondary)
                                 }
                             }
-                            .swipeActions(edge: .trailing) {
+                            .swipeActions(edge: .trailing, allowsFullSwipe:false) {
                                 Button(role: .destructive) {
                                     vm.vendorToDelete = v
                                     vm.showDeleteConfirm = true
                                 } label: {
-                                    Text("Supprimer")
+                                    Label("Supprimer", systemImage: "trash")
                                 }
                                 Button {
                                     vm.openEditForm(vendor: v)
                                 } label: {
-                                    Text("Éditer")
+                                    Label("Éditer", systemImage:"pencil")
                                 }
+                                .tint(.blue)
                             }
                         }
                         if vm.paginatedVendors.isEmpty {

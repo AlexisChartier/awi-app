@@ -92,34 +92,118 @@ struct GameSaleView: View {
 }
 
 
-
-// Sous-vue d’exemple pour sélectionner acheteur / finaliser
 struct BuyerSelectionSheet: View {
     @ObservedObject var vm: GameSaleViewModel
-    @State private var localBuyerId: Int?
+
+    // Indique si on doit émettre une facture
     @State private var invoiceNeeded: Bool = false
 
+    // Recherche par email
+    @State private var emailSearch = ""
+    @State private var searchResults: [Acheteur] = []
+
+    // Champs de création d’un nouvel acheteur
+    @State private var nom = ""
+    @State private var email = ""
+    @State private var tel = ""
+    @State private var adresse = ""
+
     var body: some View {
-        VStack {
-            Text("Acheteur / Facturation").font(.headline)
-            Toggle("Besoin facture ?", isOn: $invoiceNeeded)
-            Picker("Acheteur", selection: $localBuyerId) {
-                Text("-- Aucun --").tag(Optional<Int>.none)
-                // imagine un AcheteurService ou un simple test
-                // ...
+        NavigationStack {
+            Form {
+                // FACTURATION
+                Section(header: Text("Facturation")) {
+                    Toggle("L’acheteur souhaite une facture", isOn: $invoiceNeeded)
+                }
+
+                if invoiceNeeded {
+                    // 🔍 RECHERCHE
+                    Section(header: Text("Recherche acheteur")) {
+                        HStack {
+                            TextField("Email", text: $emailSearch)
+                                .keyboardType(.emailAddress)
+                                .autocapitalization(.none)
+
+                            Button("🔍 Rechercher") {
+                                Task {
+                                    let results = await vm.searchBuyer(email: emailSearch)
+                                    searchResults = results
+                                }
+                            }
+                        }
+
+                        // Picker lié à selectedBuyerId
+                        Picker("Sélectionner acheteur", selection: buyerPickerBinding) {
+                            Text("-- Aucun --").tag(-1)
+                            // <-- ForEach sur [Acheteur], maintenant Identifiable
+                            ForEach(searchResults) { buyer in
+                                Text("\(buyer.nom) (\(buyer.email ?? "N/A"))").tag(buyer.id) // l'id calculé dans Acheteur
+                            }
+                        }
+                    }
+
+                    // ➕ CRÉATION
+                    Section(header: Text("Créer un acheteur")) {
+                        TextField("Nom", text: $nom)
+                        TextField("Email", text: $email)
+                            .keyboardType(.emailAddress)
+                            .autocapitalization(.none)
+                        TextField("Téléphone", text: $tel)
+                            .keyboardType(.phonePad)
+                        TextField("Adresse", text: $adresse)
+
+                        Button("Créer Acheteur") {
+                            Task {
+                                if let newBuyerId = await vm.createBuyer(nom: nom,
+                                                                        email: email,
+                                                                        tel: tel,
+                                                                        adresse: adresse) {
+                                    vm.selectedBuyerId = newBuyerId
+                                    // On réinitialise les champs
+                                    emailSearch = ""
+                                    searchResults = []
+                                    nom = ""
+                                    email = ""
+                                    tel = ""
+                                    adresse = ""
+                                }
+                            }
+                        }
+                    }
+                }
+
+                // ✅ CONFIRM / ❌ ANNULER
+                Section {
+                    Button("✅ Confirmer vente") {
+                        vm.needInvoice = invoiceNeeded
+                        vm.confirmSale()
+                    }
+                    .disabled(invoiceNeeded && vm.selectedBuyerId == nil)
+
+                    Button("❌ Annuler") {
+                        vm.showBuyerDialog = false
+                    }
+                    .foregroundColor(.red)
+                }
             }
-            Button("Confirmer vente") {
-                vm.needInvoice = invoiceNeeded
-                vm.selectedBuyerId = localBuyerId
-                vm.confirmSale()
-            }
-            Button("Annuler") {
-                vm.showBuyerDialog = false
-            }
+            .navigationTitle("Facture & Acheteur")
         }
-        .padding()
+    }
+
+    /// Binding intermédiaire pour le Picker des acheteurs
+    private var buyerPickerBinding: Binding<Int> {
+        Binding(
+            get: { vm.selectedBuyerId ?? -1 },
+            set: { newValue in
+                vm.selectedBuyerId = (newValue == -1) ? nil : newValue
+            }
+        )
     }
 }
+
+
+
+
 
 struct CartSheet: View {
     @ObservedObject var vm: GameSaleViewModel
@@ -150,7 +234,7 @@ struct CartSheet: View {
                         }
                     }
 
-                    Text("Total: \(vm.totalSalePrice, format: .number)€")
+                    Text("Total: \(vm.totalSalePrice, specifier: "%.2f")€")
                         .bold()
                         .padding(.top)
 
@@ -164,6 +248,10 @@ struct CartSheet: View {
                 Spacer()
             }
             .padding()
+            .sheet(isPresented: $vm.showBuyerDialog) {
+                BuyerSelectionSheet(vm: vm)
+            }
+
         }
     }
 }

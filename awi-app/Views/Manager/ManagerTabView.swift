@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct ManagerTabView: View {
+    @EnvironmentObject var vm:AuthViewModel
     var body: some View {
         TabView {
             NavigationStack {
@@ -45,6 +46,28 @@ struct ManagerTabView: View {
             .tabItem {
                 Label("Bilan", systemImage: "doc.text.fill")
             }
+            NavigationStack{
+                SettingsView(vm: vm)
+            }
+            .tabItem{
+                Label("Paramètres", systemImage: "gearshape")
+            }
         }
     }
 }
+
+struct SettingsView: View {
+    @ObservedObject var vm: AuthViewModel
+    var body: some View {
+        VStack {
+            Button("Se déconnecter") {
+                vm.logoutAction()
+            }
+            .buttonStyle(.borderedProminent)
+            .padding()
+        }
+        .navigationTitle("Compte")
+    }
+}
+
+

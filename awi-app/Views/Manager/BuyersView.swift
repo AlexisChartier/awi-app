@@ -52,18 +52,19 @@ struct BuyersView: View {
                                     Text("Téléphone: \(tel)").foregroundColor(.secondary)
                                 }
                             }
-                            .swipeActions(edge: .trailing) {
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     vm.buyerToDelete = b
                                     vm.showDeleteConfirm = true
                                 } label: {
-                                    Text("Supprimer")
+                                    Label("Supprimer", systemImage: "trash")
                                 }
                                 Button {
                                     vm.openEditForm(buyer: b)
                                 } label: {
-                                    Text("Éditer")
+                                    Label("Éditer", systemImage: "pencil")
                                 }
+                                .tint(.blue)
                             }
                         }
                         if vm.paginatedBuyers.isEmpty {

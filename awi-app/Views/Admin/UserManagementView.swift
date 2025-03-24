@@ -119,11 +119,8 @@ struct UserFormSheet: View {
                     }
                     .pickerStyle(.segmented)
                 }
-
-                if !isEditing {
-                    Section(header: Text("Mot de passe")) {
-                        SecureField("Mot de passe", text: $vm.formPassword)
-                    }
+                Section(header: Text("Mot de passe")) {
+                    SecureField("Mot de passe", text: $vm.formPassword)
                 }
             }
             .navigationTitle(isEditing ? "Modifier Utilisateur" : "Nouvel Utilisateur")

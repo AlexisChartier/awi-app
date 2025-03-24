@@ -9,6 +9,7 @@
 import SwiftUI
 
 struct AdminTabView: View {
+    @EnvironmentObject var vm:AuthViewModel
     var body: some View {
         TabView {
             NavigationStack {
@@ -30,6 +31,12 @@ struct AdminTabView: View {
             }
             .tabItem {
                 Label("Stats", systemImage: "chart.bar.xaxis")
+            }
+            NavigationStack{
+                SettingsView(vm: vm)
+            }
+            .tabItem{
+                Label("Paramètres", systemImage: "gearshape")
             }
         }
     }

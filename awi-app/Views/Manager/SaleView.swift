@@ -163,7 +163,7 @@ struct SaleDetailSheet: View {
                     .font(.headline)
 
                 List {
-                    ForEach(vm.saleDetails, id: \.vente_id) { detail in
+                    ForEach(vm.saleDetails, id: \.depot_jeu_id) { detail in
                         let depotId = detail.depot_jeu_id ?? -1
                         let price = detail.prix_vente ?? 0.0
 

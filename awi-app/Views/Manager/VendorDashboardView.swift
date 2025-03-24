@@ -7,6 +7,9 @@
 
 import SwiftUI
 
+import UIKit
+
+
 struct VendorDashboardView: View {
     @StateObject var vm: VendorDashboardViewModel
     
@@ -109,6 +112,9 @@ struct VendorDashboardView: View {
 /// Onglet "En Vente"
 struct EnVenteListView: View {
     @ObservedObject var vm: VendorDashboardViewModel
+    // Variables d'état pour présenter la feuille de partage
+    @State private var shareURL: URL?
+    @State private var showShareSheet = false
 
     var body: some View {
         VStack {
@@ -117,7 +123,7 @@ struct EnVenteListView: View {
                     .font(.subheadline)
                     .padding()
             }
-
+            
             List(vm.depotsEnVente, id: \.id) { dv in
                 HStack {
                     // Image + nom du jeu
@@ -135,14 +141,29 @@ struct EnVenteListView: View {
                         }
                     }
                     Text(vm.getGameName(jeuId: dv.depot.jeu_id))
-
+                    
                     Spacer()
-
-                    // Identifiant ?
-                    if let ident = dv.identifiantUnique {
-                        Button("Imprimer") {
-                            // Logique d’impression de l’étiquette (ou navigation)
-                            print("Impression etiquette ident=\(ident)")
+                    
+                    // Bouton : si l'identifiant unique est présent, on propose de télécharger l'étiquette PDF
+                    if let _ = dv.identifiantUnique {
+                        Button("Télécharger étiquette") {
+                            // Récupérer les infos nécessaires
+                            let vendorName = vm.getVendorName(vendeurId: dv.depot.vendeur_id)
+                            let gameName = vm.getGameName(jeuId: dv.depot.jeu_id)
+                            let salePrice = dv.venteJeu?.prix_vente ?? dv.depot.prix_vente
+                            
+                            // Générer le PDF
+                            let pdfData = generateEtiquettePDF(depot: dv, vendorName: vendorName, gameName: gameName, salePrice: salePrice)
+                            
+                            // Sauvegarder dans un fichier temporaire
+                            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("etiquette_\(dv.identifiantUnique ?? "inconnue").pdf")
+                            do {
+                                try pdfData.write(to: tempURL)
+                                shareURL = tempURL
+                                showShareSheet = true
+                            } catch {
+                                print("Erreur écriture PDF: \(error)")
+                            }
                         }
                         .buttonStyle(.bordered)
                     } else {
@@ -154,8 +175,17 @@ struct EnVenteListView: View {
                 }
             }
         }
+        // Présentation de la feuille de partage si un PDF a été généré
+        .sheet(isPresented: $showShareSheet, onDismiss: {
+            shareURL = nil
+        }) {
+            if let shareURL = shareURL {
+                ShareSheet(activityItems: [shareURL])
+            }
+        }
     }
 }
+
 
 /// Onglet "Vendus"
 struct VenduListView: View {
@@ -275,4 +305,34 @@ struct StatsVendeurView: View {
             Text("\(value, format: .number) €")
         }
     }
+}
+
+struct ShareSheet: UIViewControllerRepresentable {
+    let activityItems: [Any]
+    
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
+    }
+    
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) { }
+}
+
+private func generateEtiquettePDF(depot: DepotAvecVente, vendorName: String, gameName: String, salePrice: Double) -> Data {
+    let pageRect = CGRect(x: 0, y: 0, width: 300, height: 150)
+    let renderer = UIGraphicsPDFRenderer(bounds: pageRect)
+    let data = renderer.pdfData { context in
+        context.beginPage()
+        let attributes = [NSAttributedString.Key.font: UIFont.systemFont(ofSize: 14)]
+        let texts = [
+            "Identifiant: \(depot.identifiantUnique ?? "N/A")",
+            "Vendeur: \(vendorName)",
+            "Jeu: \(gameName)",
+            "Prix de vente: \(salePrice) €"
+        ]
+        for (index, text) in texts.enumerated() {
+            let point = CGPoint(x: 20, y: CGFloat(20 + index * 30))
+            text.draw(at: point, withAttributes: attributes)
+        }
+    }
+    return data
 }

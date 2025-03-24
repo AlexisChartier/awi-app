@@ -3,6 +3,10 @@ import SwiftUI
 struct DepositsView: View {
     @StateObject var vm = GameDepositViewModel()
     @State private var showConfirmDialog = false
+    
+    @StateObject private var catalogVM = CatalogViewModel()
+    @State private var showGameCreationSheet = false
+
 
     var body: some View {
         NavigationStack {
@@ -73,6 +77,15 @@ struct DepositsView: View {
                                     }
                                     .pickerStyle(.menu)
                                 }
+                            }
+                            
+                            sectionCard {
+                                Button("Ajouter un jeu au catalogue") {
+                                    // On ouvre le formulaire de création de jeu
+                                    showGameCreationSheet = true
+                                }
+                                .buttonStyle(.borderedProminent)
+                                .frame(maxWidth: .infinity)
                             }
 
                             // 4. Grille de jeux + pagination
@@ -184,6 +197,9 @@ struct DepositsView: View {
             } message: {
                 Text("Vous allez payer \(vm.calculateTotalDepositFees(), format: .number)€ pour \(vm.depositItems.count) jeux.")
             }
+            .sheet(isPresented: $showGameCreationSheet) {
+                         GameFormSheet(vm: catalogVM)
+                     }
         }
     }
 
@@ -206,44 +222,61 @@ struct DepositsView: View {
             .cornerRadius(10)
             .padding(.horizontal)
     }
+    
+    
 
-    // MARK: - Formulaire d'ajout
     @ViewBuilder
     private func addGameForm(selectedGame: Jeu) -> some View {
         sectionCard {
             VStack(alignment: .leading, spacing: 12) {
                 Text("Ajouter \"\(selectedGame.nom)\" au dépôt")
                     .font(.headline)
-
+                
+                // Prix
                 HStack {
                     Text("Prix (€) :")
                     TextField("Prix", value: $vm.tempPrice, format: .number)
                         .textFieldStyle(.roundedBorder)
                 }
-
+                
+                // Quantité
                 HStack {
                     Text("Quantité :")
                     TextField("Qté", value: $vm.tempQuantity, format: .number)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 60)
                 }
-
+                
+                // État
                 Picker("État", selection: $vm.tempEtat) {
                     Text("Neuf").tag(GameDepositViewModel.EtatJeu.Neuf)
                     Text("Occasion").tag(GameDepositViewModel.EtatJeu.Occasion)
                 }
                 .pickerStyle(.segmented)
-
+                
                 if vm.tempEtat == .Occasion {
                     TextField("Détail de l'état", text: $vm.tempDetailEtat)
                         .textFieldStyle(.roundedBorder)
                 }
-
+                
+                // Calculer la valeur max de la remise
+                let maxRemise: Double = {
+                    if let session = vm.sessionActive {
+                        if session.modeFraisDepot == "fixe" {
+                            return max(session.fraisDepot - 0.01, 0)
+                        } else { // mode "pourcentage"
+                            let price = vm.tempPrice
+                            return max(price * session.fraisDepot / 100 - 0.01, 0)
+                        }
+                    }
+                    return 50
+                }()
+                
                 VStack(alignment: .leading) {
-                    Text("Remise : \(vm.tempRemise, format: .number)€")
-                    Slider(value: $vm.tempRemise, in: 0...50, step: 1)
+                    Text("Remise : \(vm.tempRemise, format: .number)€ (Max: \(maxRemise, format: .number)€)")
+                    Slider(value: $vm.tempRemise, in: 0...maxRemise, step: 1)
                 }
-
+                
                 Button("Ajouter au dépôt") {
                     vm.addGameToDeposit()
                 }

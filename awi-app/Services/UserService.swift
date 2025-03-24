@@ -91,8 +91,25 @@ class UserService {
 
     /// Mettre à jour un utilisateur
     func updateUser(id: Int, data: Utilisateur) async throws -> Utilisateur {
+        
+        var bodyDict: [String: Any] = [
+            "nom": data.nom,
+            "email": data.email,
+            "mot_de_passe": data.motDePasse!,
+            "telephone": data.telephone!,
+            "login": data.login!,
+            "role": data.role.rawValue
+        ]
+
+        let body = try JSONSerialization.data(withJSONObject: bodyDict, options: [])
+        if let jsonString = String(data: body, encoding: .utf8) {
+            print("📤 Body JSON envoyé :\n\(jsonString)")
+        } else {
+            print("⚠️ Impossible de convertir le body en string")
+        }
+
         // PUT /utilisateurs/:id
-        let body = try JSONEncoder().encode(data)
+        //let body = try JSONEncoder().encode(data)
         let request = try Api.shared.makeRequest(endpoint: "/api/utilisateurs/\(id)", method: "PUT", body: body)
 
         let (resData, response) = try await URLSession.shared.data(for: request)
@@ -100,13 +117,24 @@ class UserService {
               httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
+        print(httpResponse)
 
         // Si le back renvoie { utilisateur: {...} }
         struct UpdateUserResponse: Codable {
-            let utilisateur: Utilisateur
+            let message: String
+            let utilisateur: UpdatedUser
+        }
+        
+        struct UpdatedUser: Codable {
+            let utilisateur_id: Int
+            let nom: String
+            let email: String
+            let role: String
         }
         let decoded = try JSONDecoder().decode(UpdateUserResponse.self, from: resData)
-        return decoded.utilisateur
+        let updatedUser = decoded.utilisateur
+        let u = Utilisateur(id: updatedUser.utilisateur_id, nom: updatedUser.nom, email: updatedUser.email, role: UserRole(rawValue: updatedUser.role) ?? UserRole.manager)
+        return u
     }
 
     /// Supprimer un utilisateur

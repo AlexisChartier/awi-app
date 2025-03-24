@@ -240,7 +240,7 @@ class VendorDashboardViewModel: ObservableObject {
     func setDepotStatut(_ depot: DepotJeuRequest, newStatut: String) {
         Task {
             do {
-                try await DepotJeuService.shared.updateDepotStatut(depotId: depot.depot_jeu_id!, statut: newStatut)
+                try await DepotJeuService.shared.updateDepotStatut(depotId: depot.depot_jeu_id!)
                 // Re-fetch
                 if let _ = sessionActive?.id {
                     await fetchSessionActive(vendorId: vendor.id!)

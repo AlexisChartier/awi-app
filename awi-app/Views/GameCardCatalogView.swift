@@ -1,17 +1,16 @@
 //
-//  GameCardView.swift
+//  GameCardCatalogView.swift
 //  awi-app
 //
-//  Created by etud on 17/03/2025.
+//  Created by etud on 23/03/2025.
 //
+
 
 
 import SwiftUI
 
-struct GameCardView: View {
+struct GameCardCatalogView: View {
     let game: Jeu
-    let isSelected: Bool
-    let onTap: () -> Void
 
     var body: some View {
         ZStack(alignment: .topLeading) {
@@ -58,17 +57,6 @@ struct GameCardView: View {
                 }
             }
             .padding()
-
-            if isSelected {
-                Image(systemName: "checkmark.seal.fill")
-                    .resizable()
-                    .foregroundColor(.blue)
-                    .frame(width: 24, height: 24)
-                    .padding(6)
-            }
-        }
-        .onTapGesture {
-            onTap()
         }
         .padding(.horizontal)
         .padding(.vertical, 4)
