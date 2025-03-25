@@ -93,6 +93,12 @@ struct BuyersView: View {
                 }
             }
             .navigationTitle("Acheteurs")
+            .navigationBarBackButtonHidden(true)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink("Vendeurs", destination: VendorsView())
+                }
+            }
             .onAppear {
                 vm.loadBuyers()
             }

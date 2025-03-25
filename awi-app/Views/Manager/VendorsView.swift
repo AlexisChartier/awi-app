@@ -1,3 +1,9 @@
+//
+//  VendorsView.swift
+//  awi-app
+//
+//  Created by etud on 18/03/2025.
+//
 import SwiftUI
 
 struct VendorsView: View {
@@ -90,6 +96,7 @@ struct VendorsView: View {
             }
             .padding(.top)
             .navigationTitle("Vendeurs")
+            .navigationBarBackButtonHidden(true)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink("Acheteurs", destination: BuyersView())

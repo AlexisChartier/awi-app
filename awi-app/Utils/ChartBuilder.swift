@@ -21,7 +21,7 @@ struct ChartBuilder {
         let sortedKeys = grouped.keys.sorted()
         var cumulative: Double = 0
         return sortedKeys.map { date in
-            let total = grouped[date]?.compactMap { Double($0.montant_total ?? -1) }.reduce(0, +) ?? 0
+            let total = grouped[date]?.compactMap { Double($0.montant_total) }.reduce(0, +) ?? 0
             cumulative += total
             let label = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .short)
             return ChartDataPoint(label: label, value: cumulative)
@@ -39,7 +39,7 @@ struct ChartBuilder {
 
         let sortedKeys = grouped.keys.sorted()
         return sortedKeys.map { date in
-            let max = grouped[date]?.compactMap { Double($0.montant_total ?? -1) }.max() ?? 0
+            let max = grouped[date]?.compactMap { Double($0.montant_total) }.max() ?? 0
             let label = DateFormatter.localizedString(from: date, dateStyle: .short, timeStyle: .short)
             return ChartDataPoint(label: label, value: max)
         }

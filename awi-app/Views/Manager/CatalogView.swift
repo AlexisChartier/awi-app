@@ -1,3 +1,9 @@
+//
+//  CatalogView.swift
+//  awi-app
+//
+//  Created by etud on 20/03/2025.
+//
 import SwiftUI
 
 struct CatalogView: View {

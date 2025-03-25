@@ -1,3 +1,9 @@
+//
+//  UserManagementViewModel.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
 import SwiftUI
 
 @MainActor
@@ -79,8 +85,8 @@ class UserManagementViewModel: ObservableObject {
                         role: formRole
                     )
                     print(updated)
-                    let r = try await UserService.shared.updateUser(id: u.id!, data: updated)
-                    await loadUsers()
+                    _ = try await UserService.shared.updateUser(id: u.id!, data: updated)
+                    loadUsers()
                     showFormSheet = false
                 } catch {
                     errorMessage = "Erreur enregistrement user"
@@ -99,8 +105,8 @@ class UserManagementViewModel: ObservableObject {
                         motDePasse: formPassword,
                         role: formRole
                     )
-                    let c = try await UserService.shared.createUser(newU)
-                    await loadUsers()
+                    _ = try await UserService.shared.createUser(newU)
+                    loadUsers()
                     showFormSheet = false
                 } catch {
                     errorMessage = "Erreur creation user"
@@ -123,7 +129,7 @@ class UserManagementViewModel: ObservableObject {
         Task {
             do {
                 try await UserService.shared.deleteUser(id: ud.id!)
-                await loadUsers()
+                loadUsers()
             } catch {
                 errorMessage = "Erreur suppression user"
             }

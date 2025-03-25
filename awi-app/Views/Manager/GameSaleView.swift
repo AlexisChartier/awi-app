@@ -1,3 +1,9 @@
+//
+//  GameSaleView.swift
+//  awi-app
+//
+//  Created by etud on 21/03/2025.
+//
 import SwiftUI
 
 struct GameSaleView: View {

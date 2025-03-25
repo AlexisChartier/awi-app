@@ -1,3 +1,9 @@
+//
+//  ManagerTabView.swift
+//  awi-app
+//
+//  Created by etud on 19/03/2025.
+//
 import SwiftUI
 
 struct ManagerTabView: View {
@@ -30,7 +36,7 @@ struct ManagerTabView: View {
                     .navigationTitle("Vendeurs")
             }
             .tabItem {
-                Label("Vendeurs", systemImage: "person.3.fill")
+                Label("Comptes", systemImage: "person.3.fill")
             }
 
             NavigationStack {
@@ -53,7 +59,7 @@ struct ManagerTabView: View {
                 SettingsView(vm: vm)
             }
             .tabItem {
-                Label("Compte", systemImage: "gear")
+                Label("Déconnexion", systemImage: "door")
             }
         }
         .accentColor(.indigo)

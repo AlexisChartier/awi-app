@@ -1,3 +1,9 @@
+//
+//  SaleView.swift
+//  awi-app
+//
+//  Created by etud on 19/03/2025.
+//
 import SwiftUI
 
 struct SaleView: View {
@@ -31,7 +37,7 @@ struct SaleView: View {
                             Text(s.nom ?? "Session #\(s.id)").tag(Optional<Int>(s.id))
                         }
                     }
-                    .onChange(of: vm.selectedSessionId) { _ in vm.loadSales() }
+                    .onChange(of: vm.selectedSessionId) {vm.loadSales() }
                     .pickerStyle(.menu)
 
                     Spacer()

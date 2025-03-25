@@ -99,7 +99,7 @@ class GameSaleViewModel: ObservableObject {
 
     var totalSalePrice: Double {
         cart.reduce(0.0) { acc, depot in
-            acc + (Double(depot.prix_vente ?? -1) ?? 0.0)
+            acc + (Double(depot.prix_vente))
         }
     }
 
@@ -152,12 +152,12 @@ class GameSaleViewModel: ObservableObject {
             errorMessage = "Pas de session active"
             return
         }
-        print(selectedBuyerId)
+        print(selectedBuyerId ?? -1)
 
         Task {
             do {
                 let montantTotal = cart.reduce(0.0) { acc, depot in
-                    acc + (Double(depot.prix_vente ?? -1) ?? 0.0)
+                    acc + (Double(depot.prix_vente))
                 }
 
                 let isoFormatter = ISO8601DateFormatter()
@@ -172,7 +172,7 @@ class GameSaleViewModel: ObservableObject {
                 )
 
                 let venteJeuxDetails: [VenteJeuRequest] = cart.map {
-                    let prix = Double($0.prix_vente ?? -1) ?? 0.0
+                    let prix = Double($0.prix_vente)
                     return VenteJeuRequest(
                         vente_id: nil,
                         depot_jeu_id: $0.depot_jeu_id,

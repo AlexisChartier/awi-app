@@ -1,3 +1,9 @@
+//
+//  FinancialView.swift
+//  awi-app
+//
+//  Created by etud on 20/03/2025.
+//
 import SwiftUI
 import QuickLook
 
@@ -7,10 +13,6 @@ struct FinancialView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                Text("📊 Bilan Financier")
-                    .font(.largeTitle.bold())
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top)
 
                 // 🔔 Alertes
                 if let err = vm.errorMessage {
@@ -36,7 +38,7 @@ struct FinancialView: View {
                             sectionCard(title: "📅 Bilan par Session") {
                                 Picker("Sélectionner une session", selection: $vm.selectedSession) {
                                     ForEach(vm.sessions, id: \.id) { s in
-                                        Text("Session #\(s.nom)").tag(s as Session?)
+                                        Text("Session #\(s.nom ?? "Session Inconnu")").tag(s as Session?)
                                     }
                                 }
                                 .pickerStyle(.menu)
@@ -55,7 +57,7 @@ struct FinancialView: View {
                                 Picker("Sélectionner un vendeur", selection: $vm.selectedVendeurId) {
                                     Text("-- Choisissez un vendeur --").tag(Optional<Int>.none)
                                     ForEach(vm.vendeurs, id: \.id) { v in
-                                        Text("\(v.nom) (#\(v.id))").tag(v.id!)
+                                        Text("\(v.nom)").tag(v.id!)
                                     }
                                 }
                                 .pickerStyle(.menu)
@@ -79,7 +81,6 @@ struct FinancialView: View {
             }
             .padding()
             .navigationTitle("Bilan Financier")
-            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 vm.loadData()
             }

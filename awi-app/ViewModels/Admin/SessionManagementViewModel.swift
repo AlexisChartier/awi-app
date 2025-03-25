@@ -1,3 +1,10 @@
+//
+//  SessionManagementViewModel.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
+
 import SwiftUI
 
 @MainActor
@@ -79,7 +86,7 @@ class SessionManagementViewModel: ObservableObject {
             // Mise à jour
             Task {
                 do {
-                    let updated = try await SessionService.shared.update(
+                    _ = try await SessionService.shared.update(
                         sessionId: s.id,
                         data: Session(
                             id: s.id,
@@ -93,7 +100,7 @@ class SessionManagementViewModel: ObservableObject {
                             administrateurId: s.administrateurId
                         )
                     )
-                    await loadSessions()
+                    loadSessions()
                     showFormSheet = false
                 } catch {
                     self.errorMessage = "Erreur enregistrement session"
@@ -117,7 +124,7 @@ class SessionManagementViewModel: ObservableObject {
                             administrateurId: nil
                         )
                     )
-                    await loadSessions()
+                    loadSessions()
                     showFormSheet = false
                 } catch {
                     self.errorMessage = "Erreur création session"
@@ -139,7 +146,7 @@ class SessionManagementViewModel: ObservableObject {
         Task {
             do {
                 try await SessionService.shared.remove(sessionId: sdel.id)
-                await loadSessions()
+                loadSessions()
             } catch {
                 errorMessage = "Erreur suppression session"
             }

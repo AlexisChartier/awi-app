@@ -183,7 +183,7 @@ struct EnVenteListView: View {
                         }
                     }
                     Text(vm.getGameName(jeuId: dv.depot.jeu_id))
-                    Text("Prix de vente : \(dv.depot.prix_vente ?? 0, format: .number) €")
+                    Text("Prix de vente : \(dv.depot.prix_vente, format: .number) €")
                         .font(.subheadline)
                     
                     Spacer()
@@ -295,7 +295,7 @@ struct RetiresListView: View {
                 }
                 VStack(alignment: .leading) {
                     Text(vm.getGameName(jeuId: dv.depot.jeu_id))
-                    Text("Prix de vente : \(dv.depot.prix_vente ?? 0, format: .number) €")
+                    Text("Prix de vente : \(dv.depot.prix_vente, format: .number) €")
                         .font(.subheadline)
                     Text("Statut: Retiré")
                         .font(.footnote)
@@ -303,7 +303,7 @@ struct RetiresListView: View {
                 }
 
                 Spacer()
-                Button("Remettre en vente") {
+                Button("Mettre en vente") {
                     vm.setDepotStatut(dv.depot, newStatut: "en vente")
                 }
                 .buttonStyle(.bordered)

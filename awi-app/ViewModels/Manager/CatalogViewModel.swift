@@ -1,3 +1,9 @@
+//
+//  CatalogViewModel.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
 import SwiftUI
 
 @MainActor
@@ -141,7 +147,7 @@ class CatalogViewModel: ObservableObject {
                 for jeuId in selectedGames {
                     try await JeuService.shared.delete(id:jeuId)
                 }
-                await loadGames()
+                loadGames()
                 selectedGames.removeAll()
             } catch {
                 errorMessage = "Erreur suppression groupée"
@@ -163,7 +169,7 @@ class CatalogViewModel: ObservableObject {
         Task {
             do {
                 try await JeuService.shared.delete(id:jid)
-                await loadGames()
+                loadGames()
             } catch {
                 errorMessage = "Erreur suppression jeu"
             }
@@ -207,7 +213,7 @@ class CatalogViewModel: ObservableObject {
             do {
                 if isEditMode, let jid = newGame.id {
                     // Update
-                    let updated = try await JeuService.shared.update(id:jid, data:newGame)
+                    _ = try await JeuService.shared.update(id:jid, data:newGame)
                 } else {
                     // Create
                     if let fileData = imageFile {
@@ -217,10 +223,10 @@ class CatalogViewModel: ObservableObject {
                         // On simplifie l'exemple
                         //try await JeuService.shared.createWithImage(newGame, imageData: fileData)
                     } else {
-                        try await JeuService.shared.create(data: newGame)
+                        _ = try await JeuService.shared.create(data: newGame)
                     }
                 }
-                await loadGames()
+                loadGames()
             } catch {
                 errorMessage = "Erreur enregistrement jeu: \(error)"
             }
@@ -233,7 +239,7 @@ class CatalogViewModel: ObservableObject {
         Task {
             do {
                 //try await JeuService.shared.importCsv(csvData: data, fileName: <#String#>)
-                await loadGames()
+                loadGames()
             } catch {
                 errorMessage = "Erreur import CSV"
             }

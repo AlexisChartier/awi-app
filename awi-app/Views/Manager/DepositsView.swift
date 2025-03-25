@@ -1,3 +1,9 @@
+//
+//  DepositsView.swift
+//  awi-app
+//
+//  Created by etud on 19/03/2025.
+//
 import SwiftUI
 
 struct DepositsView: View {
@@ -39,7 +45,7 @@ struct DepositsView: View {
                                     Picker("Vendeur", selection: $vm.selectedVendeurId) {
                                         Text("-- Sélectionnez un vendeur --").tag(Int?.none)
                                         ForEach(vm.vendeurs, id: \.id) { v in
-                                            Text("\(v.nom) (ID: \(v.id))").tag(v.id as Int?)
+                                            Text("\(v.nom)").tag(v.id as Int?)
                                         }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)

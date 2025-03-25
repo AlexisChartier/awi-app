@@ -1,3 +1,9 @@
+//
+//  SessionManagementView.swift
+//  awi-app
+//
+//  Created by etud on 19/03/2025.
+//
 import SwiftUI
 
 struct SessionManagementView: View {
@@ -5,7 +11,7 @@ struct SessionManagementView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            VStack(spacing: 16) {
                 // ⚠️ Alerte
                 if let err = vm.errorMessage {
                     HStack {

@@ -1,3 +1,9 @@
+//
+//  StatsViewModel.swift
+//  awi-app
+//
+//  Created by etud on 17/03/2025.
+//
 import Foundation
 import SwiftUI
 import Charts
@@ -53,7 +59,13 @@ class StatsViewModel: ObservableObject {
     func loadSessions() {
         Task {
             do {
-                self.sessions = try await SessionService.shared.getAll()
+                let all = try await SessionService.shared.getAll()
+                await MainActor.run {
+                    self.sessions = all
+                    if self.selectedSessionId == nil {
+                        self.selectedSessionId = all.first(where: { $0.statut == "active" })?.id
+                    }
+                }
             } catch {
                 self.errorMessage = "Erreur chargement des sessions."
             }
@@ -62,13 +74,19 @@ class StatsViewModel: ObservableObject {
 
     func loadStats(for sessionId: Int) {
         Task {
-            self.errorMessage = nil
-            self.stats = nil
-            self.additionalStats = AdditionalStats()
-            self.salesOverTimeData = nil
-            self.maxSaleOverTimeData = nil
-
             do {
+                let err:String? = nil
+                let sta: Statistics? = nil
+                let addSta = AdditionalStats()
+                let sotd:[ChartDataPoint]? = nil
+                let msot:[ChartDataPoint]? =  nil
+                await MainActor.run {
+                    self.errorMessage = err
+                    self.stats = sta
+                    self.additionalStats = addSta
+                    self.salesOverTimeData = sotd
+                    self.maxSaleOverTimeData = msot
+                }
                 // 📦 Dépôts
                 let depots = try await DepotJeuService.shared.getDepotsSessions(sessionId: sessionId)
                 self.allDepots = depots
@@ -80,21 +98,21 @@ class StatsViewModel: ObservableObject {
                 let totalGamesDeposited = depots.count
 
                 // 💸 Dépôt fees
-                let totalFrais = depots.compactMap { Double($0.frais_depot ?? -1) }.reduce(0, +)
+                let totalFrais = depots.compactMap { Double($0.frais_depot) }.reduce(0, +)
                 let totalRemise = depots.compactMap { Double($0.remise ?? -1) }.reduce(0, +)
                 let totalDepositFees = totalFrais - totalRemise
 
                 // 🛒 Ventes
                 let ventes = try await VenteService.shared.getSalesBySession(sessionId: sessionId)
-                let totalSalesAmount = ventes.map { Double($0.montant_total ?? -1) ?? 0 }.reduce(0, +)
-                let maxVente = ventes.map { Double($0.montant_total ?? -1) ?? 0 }.max() ?? 0
+                let totalSalesAmount = ventes.map { Double($0.montant_total) }.reduce(0, +)
+                let maxVente = ventes.map { Double($0.montant_total) }.max() ?? 0
                 let numberOfSales = ventes.count
 
                 var totalCommissions: Double = 0
                 for vente in ventes {
                     if let id = vente.vente_id {
                         let details = try await VenteService.shared.getSalesDetails(venteId: id)
-                        totalCommissions += details.map { Double($0.commission ?? -1) ?? 0 }.reduce(0, +)
+                        totalCommissions += details.map { Double($0.commission ?? -1) }.reduce(0, +)
                     }
                 }
 
@@ -107,17 +125,18 @@ class StatsViewModel: ObservableObject {
                 let salesRate = totalGamesDeposited > 0 ? (Double(depotsVendus.count) / Double(totalGamesDeposited)) * 100 : 0
                 let averageSaleValue = numberOfSales > 0 ? totalSalesAmount / Double(numberOfSales) : 0
                 let averageDepotValue = depotsVendus.count > 0 ? totalSalesAmount / Double(depotsVendus.count) : 0
-
+                let computedStats = Statistics(
+                    totalGamesDeposited: totalGamesDeposited,
+                    totalSalesAmount: totalSalesAmount,
+                    totalCommissions: totalCommissions,
+                    totalDepositFees: totalDepositFees,
+                    totalBuyers: totalBuyers,
+                    depotsVendus: depotsVendus,
+                    maxVente: maxVente
+                )
                 await MainActor.run {
-                    self.stats = Statistics(
-                        totalGamesDeposited: totalGamesDeposited,
-                        totalSalesAmount: totalSalesAmount,
-                        totalCommissions: totalCommissions,
-                        totalDepositFees: totalDepositFees,
-                        totalBuyers: totalBuyers,
-                        depotsVendus: depotsVendus,
-                        maxVente: maxVente
-                    )
+                 
+                    self.stats = computedStats
 
                     self.additionalStats = AdditionalStats(
                         activeVendorsCount: activeVendorCount,
@@ -145,7 +164,7 @@ class StatsViewModel: ObservableObject {
             ? allDepots
             : allDepots.filter { $0.statut == "vendu" }
 
-        let grouped = Dictionary(grouping: relevantDepots.filter { $0.vendeur_id != nil }, by: { $0.vendeur_id })
+        let grouped = Dictionary(grouping: relevantDepots, by: { $0.vendeur_id })
 
         return grouped.compactMap { (vendorId, depots) in
             guard let v = vendors.first(where: { $0.id == vendorId }) else {
@@ -159,7 +178,7 @@ class StatsViewModel: ObservableObject {
                 value = Double(depots.count)
             } else {
                 let numericValues = depots.compactMap { depot in
-                    Double(depot.prix_vente ?? -1)
+                    Double(depot.prix_vente)
                 }
                 value = numericValues.reduce(0, +)
             }

@@ -1,3 +1,9 @@
+//
+//  StatsView.swift
+//  awi-app
+//
+//  Created by etud on 19/03/2025.
+//
 import SwiftUI
 import Charts
 
@@ -73,8 +79,8 @@ struct StatsView: View {
         .onAppear {
             vm.loadSessions()
         }
-        .onChange(of: vm.selectedSessionId) { newId in
-            if let id = newId {
+        .onChange(of: vm.selectedSessionId) {
+            if let id = vm.selectedSessionId {
                 vm.loadStats(for: id)
             }
         }

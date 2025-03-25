@@ -1,3 +1,9 @@
+//
+//  VendorsViewModel.swift
+//  awi-app
+//
+//  Created by etud on 19/03/2025.
+//
 import SwiftUI
 
 class VendorsViewModel: ObservableObject {
@@ -43,7 +49,7 @@ class VendorsViewModel: ObservableObject {
         Task {
             do {
                 let newV = Vendeur(id: nil, nom: nom, email: email, telephone: telephone)
-                let created = try await VendeurService.shared.createVendeur(newV)
+                _ = try await VendeurService.shared.createVendeur(newV)
                 await MainActor.run {
                     //self.vendors.append(created)
                     loadVendors()

@@ -91,16 +91,18 @@ class UserService {
 
     /// Mettre à jour un utilisateur
     func updateUser(id: Int, data: Utilisateur) async throws -> Utilisateur {
-        
         var bodyDict: [String: Any] = [
             "nom": data.nom,
             "email": data.email,
-            "mot_de_passe": data.motDePasse!,
             "telephone": data.telephone!,
             "login": data.login!,
             "role": data.role.rawValue
         ]
 
+        if let mdp = data.motDePasse, !mdp.isEmpty {
+            bodyDict["mot_de_passe"] = mdp
+        }
+        
         let body = try JSONSerialization.data(withJSONObject: bodyDict, options: [])
         if let jsonString = String(data: body, encoding: .utf8) {
             print("📤 Body JSON envoyé :\n\(jsonString)")
