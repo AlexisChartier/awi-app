@@ -47,7 +47,6 @@ class AuthViewModel: ObservableObject {
             let valid = await AuthService.shared.checkToken()
             await MainActor.run {
                 self.isAuthenticated = valid
-                // Possibilité de charger le user si valide
             }
         }
     }

@@ -39,7 +39,6 @@ class SaleViewModel: ObservableObject {
                 let allS = try await SessionService.shared.getAll()
                 self.sessions = allS
                 self.allGames = try await JeuService.shared.getAllJeux()
-                // 🔥 Sélectionner la session active automatiquement
                 if let activeSession = allS.first(where: { $0.statut == "active" }) {
                     self.selectedSessionId = activeSession.id
                     self.loadSales()
@@ -107,7 +106,6 @@ class SaleViewModel: ObservableObject {
     }
 
     var filteredSales: [VenteRequest] {
-        // on pourrait filtrer par acheteur...
         return sales
     }
 

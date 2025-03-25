@@ -19,13 +19,13 @@ struct VendorsView: View {
                     }
                 }
 
-                //  Barre de recherche + ➕ Bouton création
+                //  Barre de recherche + Bouton création
                 HStack(spacing: 12) {
                     TextField("Recherche par nom ou email", text: $vm.searchTerm)
                         .textFieldStyle(.roundedBorder)
                         .frame(maxWidth: .infinity)
 
-                    Button("➕ Ajouter") {
+                    Button("Ajouter") {
                         vm.openCreateForm()
                     }
                     .buttonStyle(.borderedProminent)

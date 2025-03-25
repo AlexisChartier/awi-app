@@ -75,7 +75,6 @@ struct LoginView: View {
         }
         .onChange(of: authVM.isAuthenticated) { _, newValue in
             if newValue {
-                // Navigation déclenchée par RootView si nécessaire
             }
         }
     }
