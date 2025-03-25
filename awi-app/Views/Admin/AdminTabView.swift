@@ -14,7 +14,7 @@ struct AdminTabView: View {
                     .navigationTitle("Utilisateurs")
             }
             .tabItem {
-                Label("Utilisateurs", systemImage: "person.2.fill")
+                Label("Utilisateurs", systemImage: "person.3.fill")
             }
 
             NavigationStack {
@@ -30,7 +30,7 @@ struct AdminTabView: View {
                     .navigationTitle("Statistiques")
             }
             .tabItem {
-                Label("Stats", systemImage: "chart.bar.xaxis")
+                Label("Stats", systemImage: "chart.bar.fill")
             }
 
             NavigationStack {
@@ -40,6 +40,6 @@ struct AdminTabView: View {
                 Label("Compte", systemImage: "gear")
             }
         }
-        .accentColor(.blue) // Personnalise la couleur principale du TabView
+        .accentColor(.indigo)
     }
 }

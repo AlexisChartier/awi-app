@@ -78,7 +78,7 @@ struct SaleView: View {
                     }
                 }
             }
-            .navigationTitle("Consultation des Ventes")
+            .navigationTitle("Ventes")
             .onAppear {
                 vm.loadInitial()
             }

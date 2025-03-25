@@ -42,6 +42,7 @@ struct DepositsView: View {
                                             Text("\(v.nom) (ID: \(v.id))").tag(v.id as Int?)
                                         }
                                     }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                     .pickerStyle(.menu)
                                 }
 
@@ -51,6 +52,8 @@ struct DepositsView: View {
                                         Text("Nom : \(session.nom ?? "Sans nom")")
                                         Text("Frais de dépôt : \(session.fraisDepot, format: .number) \(session.modeFraisDepot == "pourcentage" ? "%" : "€")")
                                         Text("Commission : \(session.commissionRate, format: .number)%")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+
                                     }
                                 } else {
                                     sectionCard(icon: "calendar.badge.exclamationmark", title: "Session") {
@@ -138,6 +141,7 @@ struct DepositsView: View {
                                                 .foregroundColor(.red)
                                             }
                                         }
+                                        .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
 
@@ -147,6 +151,7 @@ struct DepositsView: View {
                                         Text("Frais totaux : \(vm.calculateDepositFeesAvantRemise(), format: .number)€")
                                         Text("Remise totale : \(vm.calculateTotalRemise(), format: .number)€")
                                         Text("Nb d'items : \(vm.depositItems.count)")
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                     }
                                 }
 
@@ -163,13 +168,13 @@ struct DepositsView: View {
                                 .cornerRadius(AppTheme.cornerRadius)
                                 .disabled(vm.depositItems.isEmpty || vm.selectedVendeurId == nil)
                             }
-                            .frame(maxWidth: AppTheme.maxContentWidth)
+                            .frame(maxWidth: .infinity)
                             .padding()
                         }
                     }
                 }
             }
-            .navigationTitle("Dépôt de Jeux")
+            .navigationTitle("Dépôt")
             .confirmationDialog("Confirmation",
                                 isPresented: $showConfirmDialog,
                                 titleVisibility: .visible) {
@@ -200,7 +205,7 @@ struct DepositsView: View {
         .padding()
         .background(color.opacity(0.1))
         .cornerRadius(AppTheme.cornerRadius)
-        .frame(maxWidth: AppTheme.maxContentWidth)
+        .frame(maxWidth: .infinity)
         .padding(.horizontal)
     }
 
@@ -225,6 +230,7 @@ struct DepositsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
         )
         .cornerRadius(AppTheme.cornerRadius)
+        .frame(maxWidth: .infinity, alignment: .leading) // 🧨 CRUCIAL !
     }
 
     // MARK: - Formulaire d’ajout de jeu

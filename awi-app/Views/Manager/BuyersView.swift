@@ -92,7 +92,7 @@ struct BuyersView: View {
                     .padding(.vertical, 5)
                 }
             }
-            .navigationTitle("Gestion des Acheteurs")
+            .navigationTitle("Acheteurs")
             .onAppear {
                 vm.loadBuyers()
             }

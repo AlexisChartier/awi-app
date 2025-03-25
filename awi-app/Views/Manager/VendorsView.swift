@@ -89,7 +89,7 @@ struct VendorsView: View {
                 }
             }
             .padding(.top)
-            .navigationTitle("🧑‍💼 Gestion des Vendeurs")
+            .navigationTitle("Vendeurs")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink("Acheteurs", destination: BuyersView())

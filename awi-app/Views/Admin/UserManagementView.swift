@@ -5,72 +5,89 @@ struct UserManagementView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 0) {
+
                 // ⚠️ Message d'erreur
                 if let err = vm.errorMessage {
                     HStack {
-                        Text(err).foregroundColor(.red)
+                        Label(err, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
                         Spacer()
-                        Button("X") { vm.errorMessage = nil }
+                        Button {
+                            vm.errorMessage = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .foregroundColor(.red)
                     }
+                    .padding()
+                    .background(Color.red.opacity(0.05))
+                    .cornerRadius(10)
                     .padding(.horizontal)
                 }
 
-                // 🔁 Chargement
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement utilisateurs...")
                     Spacer()
                 } else {
-                    // 🔧 Barre de gestion
-                    HStack {
-                        Text("👥 \(vm.utilisateurs.count) utilisateur(s)")
-                            .font(.subheadline)
-                        Spacer()
-                        Button {
-                            vm.openCreateSheet()
-                        } label: {
-                            Label("Ajouter", systemImage: "plus")
-                        }
-                        .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.horizontal)
-
-                    List {
-                        ForEach(vm.utilisateurs, id: \.id) { user in
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack {
-                                    Text(user.nom).bold()
-                                    Spacer()
-                                    Text(user.role.rawValue.capitalized)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                Text(user.email)
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
+                    VStack(spacing: 16) {
+                        // 🧭 Barre haute
+                        HStack {
+                            Text("👥 \(vm.utilisateurs.count) utilisateur(s)")
+                                .font(.headline)
+                            Spacer()
+                            Button {
+                                vm.openCreateSheet()
+                            } label: {
+                                Label("Ajouter", systemImage: "plus")
                             }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    vm.openDeleteDialog(user)
-                                } label: {
-                                    Label("Supprimer", systemImage: "trash")
-                                }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        .padding(.horizontal)
 
-                                Button {
-                                    vm.openEditSheet(user)
-                                } label: {
-                                    Label("Modifier", systemImage: "pencil")
+                        // 📋 Liste utilisateurs
+                        List {
+                            ForEach(vm.utilisateurs, id: \.id) { user in
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack {
+                                        Text(user.nom)
+                                            .font(.headline)
+                                        Spacer()
+                                        Text(user.role.rawValue.capitalized)
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(Color.blue.opacity(0.1))
+                                            .cornerRadius(6)
+                                    }
+                                    Text(user.email)
+                                        .font(.subheadline)
+                                        .foregroundColor(.gray)
                                 }
-                                .tint(.blue)
+                                .padding(.vertical, 4)
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                    Button(role: .destructive) {
+                                        vm.openDeleteDialog(user)
+                                    } label: {
+                                        Label("Supprimer", systemImage: "trash")
+                                    }
+
+                                    Button {
+                                        vm.openEditSheet(user)
+                                    } label: {
+                                        Label("Modifier", systemImage: "pencil")
+                                    }
+                                    .tint(.blue)
+                                }
                             }
                         }
+                        .listStyle(.insetGrouped)
                     }
-
-                    .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Gestion des Utilisateurs")
+            .navigationTitle("Utilisateurs")
             .onAppear {
                 vm.loadUsers()
             }
@@ -90,6 +107,7 @@ struct UserManagementView: View {
         }
     }
 }
+
 
 
 struct UserFormSheet: View {
@@ -118,7 +136,9 @@ struct UserFormSheet: View {
                         }
                     }
                     .pickerStyle(.segmented)
+                    .padding(.vertical, 4)
                 }
+
                 Section(header: Text("Mot de passe")) {
                     SecureField("Mot de passe", text: $vm.formPassword)
                 }

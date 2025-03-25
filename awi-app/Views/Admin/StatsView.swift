@@ -7,12 +7,7 @@ struct StatsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 16) {
-                    // 🧠 Titre principal
-                    Text("Tableau de bord Administrateur")
-                        .font(.largeTitle.bold())
-                        .padding(.top, 10)
-
+                VStack(spacing: 24) {
                     // 🗂 Sélecteur de session
                     Picker("Session", selection: $vm.selectedSessionId) {
                         Text("Sélectionner une session").tag(Int?.none)
@@ -39,38 +34,42 @@ struct StatsView: View {
                             StatCardView(title: "📦 Moyenne dépôt vendu", value: "\(String(format:"%.2f",vm.additionalStats.averageDepotValue)) €")
                         }
                         .padding(.horizontal)
-                        .padding(.bottom)
                     }
 
                     // 🥧 Camembert : Répartition par vendeur
-                    VStack(alignment: .leading) {
-                        Text("Répartition des dépôts par vendeur")
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("📌 Répartition des dépôts par vendeur")
                             .font(.headline)
-                        Picker("Type", selection: $vm.pieChartType) {
-                            Text("Tous").tag(StatsViewModel.PieChartType.all)
-                            Text("Vendus").tag(StatsViewModel.PieChartType.sold)
-                        }.pickerStyle(.segmented)
+                            .padding(.bottom, 4)
 
-                        Picker("Critère", selection: $vm.pieMetric) {
-                            Text("Nombre").tag(StatsViewModel.PieMetric.count)
-                            Text("Valeur").tag(StatsViewModel.PieMetric.value)
-                        }.pickerStyle(.segmented)
+                        HStack {
+                            Picker("Type", selection: $vm.pieChartType) {
+                                Text("Tous").tag(StatsViewModel.PieChartType.all)
+                                Text("Vendus").tag(StatsViewModel.PieChartType.sold)
+                            }
+                            .pickerStyle(.segmented)
+
+                            Picker("Critère", selection: $vm.pieMetric) {
+                                Text("Nombre").tag(StatsViewModel.PieMetric.count)
+                                Text("Valeur").tag(StatsViewModel.PieMetric.value)
+                            }
+                            .pickerStyle(.segmented)
+                        }
 
                         PieChartView(data: vm.generatePieChartData())
                             .frame(height: 300)
                     }
-                    .padding()
+                    .padding(.horizontal)
                 }
 
-                // 💬 Message d’erreur
                 if let error = vm.errorMessage {
                     Text(error)
                         .foregroundColor(.red)
                         .padding()
                 }
             }
-            .navigationTitle("Statistiques")
         }
+        .navigationTitle("Statistiques")
         .onAppear {
             vm.loadSessions()
         }
@@ -81,6 +80,49 @@ struct StatsView: View {
         }
     }
 }
+
+struct StatCardView: View {
+    let title: String
+    let value: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.title3.bold())
+                .foregroundColor(.primary)
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color(.systemGray6))
+        .cornerRadius(14)
+        .shadow(color: Color.black.opacity(0.05), radius: 3, x: 0, y: 2)
+    }
+}
+
+
+struct PieChartView: View {
+    var data: [PieSliceData]
+
+    var body: some View {
+        Chart {
+            ForEach(data) { slice in
+                SectorMark(
+                    angle: .value("Valeur", slice.value),
+                    innerRadius: .ratio(0.5),
+                    angularInset: 1
+                )
+                .foregroundStyle(by: .value("Vendeur", slice.label))
+            }
+        }
+        .chartLegend(position: .trailing, spacing: 8)
+        .padding()
+    }
+}
+
+
 
 struct ChartDataPoint: Identifiable {
     var id = UUID()
@@ -94,51 +136,4 @@ struct PieSliceData: Identifiable {
     var value: Double
 }
 
-
-struct StatCardView: View {
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Text(value)
-                .font(.title2.bold())
-                .foregroundColor(.primary)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding()
-        .background(.thinMaterial)
-        .cornerRadius(12)
-        .shadow(radius: 2)
-    }
-}
-
-
-struct PieChartView: View {
-    var data: [PieSliceData]
-
-    var body: some View {
-        Chart {
-            ForEach(data) { slice in
-                SectorMark(
-                    angle: .value("Value", slice.value),
-                    innerRadius: .ratio(0.5),
-                    angularInset: 1
-                )
-                .foregroundStyle(by: .value("Label", slice.label))
-                .annotation(position: .overlay, alignment: .center) {
-                    Text(slice.label)
-                        .font(.caption2)
-                        .foregroundColor(.white)
-                        .rotationEffect(.degrees(-90))
-                }
-            }
-        }
-        .chartLegend(.visible)
-        .padding()
-    }
-}
 

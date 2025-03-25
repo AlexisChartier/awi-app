@@ -78,7 +78,8 @@ struct FinancialView: View {
                 Spacer()
             }
             .padding()
-            .navigationBarHidden(true)
+            .navigationTitle("Bilan Financier")
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 vm.loadData()
             }

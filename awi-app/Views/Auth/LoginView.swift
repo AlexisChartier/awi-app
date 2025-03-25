@@ -16,13 +16,9 @@ struct LoginView: View {
                     .foregroundColor(.blue)
                     .padding(.bottom, 10)
 
-                Text("Bienvenue")
+                Text("Connexion")
                     .font(.title)
                     .fontWeight(.semibold)
-                
-                Text("Connectez-vous pour continuer")
-                    .foregroundColor(.gray)
-                    .padding(.bottom, 30)
                 
                 VStack(spacing: 16) {
                     // Champ Login

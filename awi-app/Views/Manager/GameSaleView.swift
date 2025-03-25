@@ -80,7 +80,7 @@ struct GameSaleView: View {
                     .padding(.bottom, 8)
                 }
             }
-            .navigationTitle("Gestion des Ventes")
+            .navigationTitle("Ventes")
             .onAppear {
                 vm.loadData()
             }

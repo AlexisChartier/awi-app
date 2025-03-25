@@ -5,19 +5,30 @@ struct SessionManagementView: View {
 
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 0) {
+                // ⚠️ Alerte
                 if let err = vm.errorMessage {
                     HStack {
-                        Text(err).foregroundColor(.red)
+                        Label(err, systemImage: "exclamationmark.triangle.fill")
+                            .foregroundColor(.red)
                         Spacer()
-                        Button("X") { vm.errorMessage = nil }
+                        Button {
+                            vm.errorMessage = nil
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                        }
+                        .foregroundColor(.red)
                     }
+                    .padding()
+                    .background(Color.red.opacity(0.05))
+                    .cornerRadius(10)
                     .padding(.horizontal)
                 }
 
+                // 🧭 En-tête
                 HStack {
                     Text("📅 \(vm.sessions.count) session(s)")
-                        .font(.subheadline)
+                        .font(.headline)
                     Spacer()
                     Button {
                         vm.openCreateSheet()
@@ -28,6 +39,7 @@ struct SessionManagementView: View {
                 }
                 .padding(.horizontal)
 
+                // 📋 Liste
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement sessions...")
@@ -35,17 +47,33 @@ struct SessionManagementView: View {
                 } else {
                     List {
                         ForEach(vm.sessions, id: \.id) { session in
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(session.nom!)
-                                    .font(.headline)
+                            VStack(alignment: .leading, spacing: 6) {
                                 HStack {
-                                    Text("Frais dépôt : \(session.fraisDepot, format: .number)\(session.modeFraisDepot == "pourcentage" ? "%" : "€")")
+                                    Text(session.nom ?? "Session sans nom")
+                                        .font(.headline)
                                     Spacer()
-                                    Text("Commission : \(session.commissionRate, format: .number)%")
-                                        .font(.subheadline)
-                                        .foregroundColor(.gray)
+                                    if session.statut == "active" {
+                                        Label("Active", systemImage: "checkmark.seal.fill")
+                                            .font(.caption)
+                                            .foregroundColor(.green)
+                                    } else {
+                                        Label("Inactive", systemImage: "xmark.seal")
+                                            .font(.caption)
+                                            .foregroundColor(.gray)
+                                    }
                                 }
+
+                                HStack {
+                                    Text("📅 \(formattedDate(session.dateDebut)) → \(formattedDate(session.dateFin))")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+
+                                Text("💰 Frais : \(session.fraisDepot, format: .number)\(session.modeFraisDepot == "pourcentage" ? "%" : "€") • Commission : \(session.commissionRate, format: .number)%")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
                             }
+                            .padding(.vertical, 6)
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                 Button(role: .destructive) {
                                     vm.openDeleteDialog(session)
@@ -62,11 +90,10 @@ struct SessionManagementView: View {
                             }
                         }
                     }
-
                     .listStyle(.insetGrouped)
                 }
             }
-            .navigationTitle("Gestion des Sessions")
+            .navigationTitle("Sessions")
             .onAppear {
                 vm.loadSessions()
             }
@@ -77,7 +104,7 @@ struct SessionManagementView: View {
                 }
             } message: {
                 if let session = vm.sessionToDelete {
-                    Text("Voulez-vous vraiment supprimer la session « \(session.nom) » ?")
+                    Text("Voulez-vous vraiment supprimer la session « \(session.nom ?? "") » ?")
                 }
             }
             .sheet(isPresented: $vm.showFormSheet) {
@@ -85,7 +112,14 @@ struct SessionManagementView: View {
             }
         }
     }
+
+    private func formattedDate(_ date: Date) -> String {
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        return df.string(from: date)
+    }
 }
+
 
 
 // MARK: - Sous-vue pour une rangée
