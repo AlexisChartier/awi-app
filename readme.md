@@ -35,16 +35,15 @@ Cette application s'appuie sur le back end du projet awi et reprends les mêmes 
 
 ## Structure du projet
 
-awi-app/
--Models/      Structures de données (simulations, utilisateurs, etc.)
+-Models      Structures de données (simulations, utilisateurs, etc.)
 
--Views/       Écrans de l'application SwiftUI
+-Views       Écrans de l'application SwiftUI
 
--ViewModels/  Logique de présentation (MVVM)
+-ViewModels  Logique de présentation (MVVM)
 
--Services/    Appels API, gestion des erreurs, etc.
+-Services    Appels API, gestion des erreurs, etc.
 
--Utils/       Ressources diverses
+-Utils       Ressources diverses
 
 ## Sécurité & Données
 
