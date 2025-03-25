@@ -12,7 +12,7 @@ struct SessionManagementView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                // ⚠️ Alerte
+                //  Alerte
                 if let err = vm.errorMessage {
                     HStack {
                         Label(err, systemImage: "exclamationmark.triangle.fill")
@@ -31,7 +31,7 @@ struct SessionManagementView: View {
                     .padding(.horizontal)
                 }
 
-                // 🧭 En-tête
+                // En-tête
                 HStack {
                     Text("📅 \(vm.sessions.count) session(s)")
                         .font(.headline)
@@ -45,7 +45,7 @@ struct SessionManagementView: View {
                 }
                 .padding(.horizontal)
 
-                // 📋 Liste
+                //  Liste
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement sessions...")

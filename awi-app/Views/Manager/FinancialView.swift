@@ -14,7 +14,7 @@ struct FinancialView: View {
         NavigationStack {
             VStack(spacing: 20) {
 
-                // 🔔 Alertes
+                // Alertes
                 if let err = vm.errorMessage {
                     alertView(text: err, color: .red) {
                         vm.errorMessage = nil
@@ -26,7 +26,7 @@ struct FinancialView: View {
                     }
                 }
 
-                // 🔄 Chargement
+                // Chargement
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement des données...")

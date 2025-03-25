@@ -12,6 +12,7 @@ struct SaleView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
+                
                 if let err = vm.errorMessage {
                     Text(err)
                         .foregroundColor(.red)
@@ -97,12 +98,18 @@ struct SaleView: View {
     }
 }
 
-// 📄 Carte d’une vente
+//  Carte d’une vente
 struct SaleCardView: View {
     let sale: VenteRequest
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
+            LinearGradient(
+                colors: [Color.cyan, Color.purple],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
             Text("🧾 Vente #\(sale.vente_id ?? -1)")
                 .font(.headline)
 
@@ -123,7 +130,7 @@ struct SaleCardView: View {
     }
 }
 
-// 📋 Détail d'une vente
+// Détail d'une vente
 struct SaleDetailSheet: View {
     @ObservedObject var vm: SaleViewModel
     let sale: VenteRequest

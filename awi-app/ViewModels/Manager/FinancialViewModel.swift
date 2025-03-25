@@ -7,11 +7,13 @@
 import SwiftUI
 import QuickLook
 
+///Struct pour gérer l'affichage du fichier pdf téléchargé
 struct IdentifiableURL: Identifiable {
     var id: String { url.absoluteString }
     let url: URL
 }
 
+///ViewModel pour la page de génération des bilans financiers
 @MainActor
 class FinancialViewModel: ObservableObject {
     @Published var sessions: [Session] = []
@@ -24,11 +26,12 @@ class FinancialViewModel: ObservableObject {
     @Published var previewURL: IdentifiableURL? // <- pour QuickLook
 
 
+    ///Charger les sessions et les vendeurs
     func loadData() {
         loading = true
         Task {
             do {
-                let allSessions = try await SessionService.shared.getAll() // imagine
+                let allSessions = try await SessionService.shared.getAll()
                 self.sessions = allSessions
                 if let first = allSessions.first {
                     self.selectedSession = first
@@ -42,6 +45,7 @@ class FinancialViewModel: ObservableObject {
         }
     }
 
+    ///Sauvegarder le bilan et l'afficher
     private func saveAndPreview(data: Data, filename: String) {
             let tempDir = FileManager.default.temporaryDirectory
             let fileURL = tempDir.appendingPathComponent(filename)
@@ -53,7 +57,8 @@ class FinancialViewModel: ObservableObject {
                 self.errorMessage = "Erreur lors de la sauvegarde du PDF."
             }
         }
-
+        
+        ///Générer le bilan pour une session
         func generateSessionReport() {
             guard let ss = selectedSession else {
                 errorMessage = "Aucune session sélectionnée."
@@ -69,7 +74,7 @@ class FinancialViewModel: ObservableObject {
                 }
             }
         }
-
+        ///Générer le bilan pour une session et un vendeur spécifique
         func generateVendorReport() {
             guard let ss = selectedSession,
                   let vid = selectedVendeurId else {

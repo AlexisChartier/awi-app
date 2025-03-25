@@ -14,7 +14,7 @@ struct StatsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // 🗂 Sélecteur de session
+                    // Sélecteur de session
                     Picker("Session", selection: $vm.selectedSessionId) {
                         Text("Sélectionner une session").tag(Int?.none)
                         ForEach(vm.sessions, id: \.id) { session in
@@ -24,7 +24,7 @@ struct StatsView: View {
                     .pickerStyle(.menu)
                     .padding(.horizontal)
 
-                    // 📊 Statistiques principales
+                    // Statistiques principales
                     if let stats = vm.stats {
                         LazyVGrid(columns: [GridItem(.adaptive(minimum: 150))], spacing: 16) {
                             StatCardView(title: "🎮 Dépôts", value: "\(stats.totalGamesDeposited)")
@@ -42,7 +42,7 @@ struct StatsView: View {
                         .padding(.horizontal)
                     }
 
-                    // 🥧 Camembert : Répartition par vendeur
+                    // Camembert : Répartition par vendeur
                     VStack(alignment: .leading, spacing: 12) {
                         Text("📌 Répartition des dépôts par vendeur")
                             .font(.headline)

@@ -15,7 +15,7 @@ struct CatalogView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
 
-                    // 🔍 Filtres
+                    // Filtres
                     HStack(spacing: 12) {
                         TextField("Recherche...", text: $vm.searchTerm)
                             .textFieldStyle(.roundedBorder)
@@ -46,7 +46,7 @@ struct CatalogView: View {
                         ProgressView("Chargement du catalogue...")
                             .frame(maxWidth: .infinity)
                     } else {
-                        // 🧩 Grille des jeux
+                        // Grille des jeux
                         LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
                             ForEach(vm.pageJeux, id: \.id) { game in
                                 VStack(spacing: 4) {

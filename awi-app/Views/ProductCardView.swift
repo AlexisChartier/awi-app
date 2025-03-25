@@ -80,7 +80,7 @@ struct ProductCardView: View {
         .background(Color(.systemBackground))
         .cornerRadius(12)
         .shadow(radius: 2)
-        .frame(maxWidth: 200) // ✅ Contraint la largeur
+        .frame(maxWidth: 200) 
         .fixedSize(horizontal: false, vertical: true)
     }
 }

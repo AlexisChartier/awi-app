@@ -12,14 +12,14 @@ struct VendorsView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
-                // 🔔 Zone d'erreur
+                //  Zone d'erreur
                 if let error = vm.errorMessage {
                     alertView(text: error, color: .red) {
                         vm.errorMessage = nil
                     }
                 }
 
-                // 🔍 Barre de recherche + ➕ Bouton création
+                //  Barre de recherche + ➕ Bouton création
                 HStack(spacing: 12) {
                     TextField("Recherche par nom ou email", text: $vm.searchTerm)
                         .textFieldStyle(.roundedBorder)
@@ -32,13 +32,13 @@ struct VendorsView: View {
                 }
                 .padding(.horizontal)
 
-                // 🔄 Chargement
+                //  Chargement
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement...")
                     Spacer()
                 } else {
-                    // 📋 Liste des vendeurs
+                    //  Liste des vendeurs
                     List {
                         ForEach(vm.paginatedVendors, id: \.id) { v in
                             NavigationLink(destination: VendorDashboardView(vendor: v)) {
@@ -75,7 +75,7 @@ struct VendorsView: View {
                     .listStyle(.insetGrouped)
                 }
 
-                // 📘 Pagination
+                // Pagination
                 if vm.totalPages > 1 {
                     HStack(spacing: 16) {
                         Button("◀️ Précédent") {
@@ -105,7 +105,7 @@ struct VendorsView: View {
             .onAppear {
                 vm.loadVendors()
             }
-            // 🔥 Alerte suppression
+            // Alerte suppression
             .alert("Supprimer ce vendeur ?", isPresented: $vm.showDeleteConfirm, actions: {
                 Button("Annuler", role: .cancel) {}
                 Button("Supprimer", role: .destructive) {
@@ -116,7 +116,7 @@ struct VendorsView: View {
                     Text("Voulez-vous vraiment supprimer \(vend.nom) ?")
                 }
             })
-            // 📄 Formulaire
+            //  Formulaire
             .sheet(isPresented: $vm.showFormSheet) {
                 VendorFormSheet(vm: vm)
             }
@@ -147,7 +147,7 @@ struct VendorFormSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(header: Text(vm.isEditMode ? "✏️ Modifier un Vendeur" : "➕ Nouveau Vendeur")) {
+                Section(header: Text(vm.isEditMode ? "Modifier un Vendeur" : "Nouveau Vendeur")) {
                     TextField("Nom", text: $vm.currentVendor.nom)
                         .textContentType(.name)
                         .autocapitalization(.words)

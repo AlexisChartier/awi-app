@@ -17,7 +17,7 @@ struct DepositsView: View {
         NavigationStack {
             ZStack {
                 LinearGradient(
-                    colors: [Color("BackgroundStart"), Color("BackgroundEnd")],
+                    colors: [Color.cyan, Color.purple],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
@@ -54,12 +54,11 @@ struct DepositsView: View {
 
                                 // Session Active
                                 if let session = vm.sessionActive {
-                                    sectionCard(icon: "calendar.badge.clock", title: "Session Active", color: AppTheme.successColor.opacity(0.1)) {
+                                    sectionCard(icon: "calendar.badge.clock", title: "Session Active", color: AppTheme.successColor) {
                                         Text("Nom : \(session.nom ?? "Sans nom")")
                                         Text("Frais de dépôt : \(session.fraisDepot, format: .number) \(session.modeFraisDepot == "pourcentage" ? "%" : "€")")
                                         Text("Commission : \(session.commissionRate, format: .number)%")
                                             .frame(maxWidth: .infinity, alignment: .leading)
-
                                     }
                                 } else {
                                     sectionCard(icon: "calendar.badge.exclamationmark", title: "Session") {
@@ -236,7 +235,7 @@ struct DepositsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
         )
         .cornerRadius(AppTheme.cornerRadius)
-        .frame(maxWidth: .infinity, alignment: .leading) // 🧨 CRUCIAL !
+        .frame(maxWidth: .infinity, alignment: .leading) 
     }
 
     // MARK: - Formulaire d’ajout de jeu

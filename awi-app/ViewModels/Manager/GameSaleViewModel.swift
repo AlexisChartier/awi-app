@@ -161,7 +161,6 @@ class GameSaleViewModel: ObservableObject {
                 }
 
                 let isoFormatter = ISO8601DateFormatter()
-                // isoFormatter.timeZone = TimeZone.current // ou .utc, selon votre besoin
                 let dateString = isoFormatter.string(from: Date())
                 let venteRequest = VenteRequest(
                     vente_id: nil,

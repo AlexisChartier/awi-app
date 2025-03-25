@@ -59,7 +59,7 @@ struct ManagerTabView: View {
                 SettingsView(vm: vm)
             }
             .tabItem {
-                Label("Déconnexion", systemImage: "door")
+                Label("Déconnexion", systemImage: "rectangle.portrait.and.arrow.right")
             }
         }
         .accentColor(.indigo)

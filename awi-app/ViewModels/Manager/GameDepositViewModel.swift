@@ -6,6 +6,7 @@
 //
 import SwiftUI
 
+///ViewModel pour la page de dépôt de jeu 
 class GameDepositViewModel: ObservableObject {
     @Published var vendeurs: [Vendeur] = []
     @Published var sessionActive: Session?
@@ -26,7 +27,7 @@ class GameDepositViewModel: ObservableObject {
     @Published var tempDetailEtat: String = ""
     @Published var tempRemise: Double = 0
 
-    // ✅ Pagination support
+    //Pagination support
     @Published var currentPage: Int = 0
     let pageSize = 8
 
@@ -219,7 +220,7 @@ class GameDepositViewModel: ObservableObject {
         }
     }
 
-    // 🔍 Filtrage
+    //Filtrage
     func filteredCatalog() -> [Jeu] {
         let sTerm = searchTerm.lowercased()
         let base = catalogGames.sorted(by: { $0.nom.localizedCompare($1.nom) == .orderedAscending })
@@ -231,7 +232,7 @@ class GameDepositViewModel: ObservableObject {
     }
 
 
-    // 📦 Pagination
+    // Pagination
     func paginatedCatalog() -> [Jeu] {
         let filtered = filteredCatalog()
         let start = currentPage * pageSize

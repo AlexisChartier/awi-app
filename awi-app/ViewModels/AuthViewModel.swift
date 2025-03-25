@@ -12,10 +12,10 @@ class AuthViewModel: ObservableObject {
     @Published var login: String = ""
     @Published var password: String = ""
     @Published var errorMessage: String?
-    @Published var isLoading: Bool = false   // ✅ Suivi de chargement
+    @Published var isLoading: Bool = false
 
     func loginAction() {
-        isLoading = true  // ✅ Démarrage du chargement
+        isLoading = true
         Task {
             let creds = LoginCredentials(login: login, mot_de_passe: password)
             do {
@@ -31,7 +31,7 @@ class AuthViewModel: ObservableObject {
                 }
             }
             await MainActor.run {
-                self.isLoading = false // ✅ Fin du chargement
+                self.isLoading = false
             }
         }
     }

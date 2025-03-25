@@ -5,85 +5,75 @@
 //  Created by etud on 17/03/2025.
 //
 
-
 import Foundation
 
+/// Représente les identifiants d’un utilisateur pour se connecter.
 struct LoginCredentials: Codable {
     let login: String
     let mot_de_passe: String
 }
 
+/// Réponse du backend après authentification.
 struct AuthResponse: Codable {
     let token: String
     let utilisateur: Utilisateur
 }
 
+/// Gère l’authentification de l’utilisateur (login, logout, vérification token).
 class AuthService {
     static let shared = AuthService()
-
     private init() {}
 
-    /// Exemple d'authentification
-    /// POST /auth/login
-        /// Retourne { token, utilisateur }
-        func login(credentials: LoginCredentials) async throws -> AuthResponse {
-            // On encode les identifiants
-            let body = try JSONEncoder().encode(credentials)
-            
-            // Construire la requête
-            let request = try Api.shared.makeRequest(
-                endpoint: "/api/auth/login",
-                method: "POST",
-                body: body
-            )
-            
-            // Envoyer la requête
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            // Vérifier le code HTTP
-            guard let httpResponse = response as? HTTPURLResponse,
-                  httpResponse.statusCode == 200 else {
-                // On peut lever une erreur plus précise si besoin
-                throw URLError(.badServerResponse)
-            }
-            
-            // Décoder la réponse JSON
-            let authResp = try JSONDecoder().decode(AuthResponse.self, from: data)
-            
-            // Stocker le token dans Api.shared
-            Api.shared.authToken = authResp.token
-            
-            return authResp
+    /// Effectue une tentative de connexion.
+    /// - Parameter credentials: Identifiants de connexion
+    /// - Returns: Réponse contenant le token et les infos utilisateur
+    func login(credentials: LoginCredentials) async throws -> AuthResponse {
+        let body = try JSONEncoder().encode(credentials)
+        let request = try Api.shared.makeRequest(endpoint: "/api/auth/login", method: "POST", body: body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse,
+              httpResponse.statusCode == 200 else {
+            throw URLError(.badServerResponse)
         }
 
+        let authResp = try JSONDecoder().decode(AuthResponse.self, from: data)
+
+        // Enregistre le token JWT
+        Api.shared.authToken = authResp.token
+
+        return authResp
+    }
+
+    /// Déconnecte l'utilisateur localement (efface le token)
     func logout() {
-        // Pour un simple JWT, on peut juste effacer le token localement
         Api.shared.authToken = nil
     }
 
-    /// Vérifie si le token est encore valide (GET /auth/check)
-        /// Retourne true si OK, false si le back-end renvoie une erreur
-        func checkToken() async -> Bool {
-            guard Api.shared.authToken != nil else {
+    /// Vérifie que le token stocké est encore valide
+    /// - Returns: Booléen indiquant si la session est encore active
+    func checkToken() async -> Bool {
+        guard Api.shared.authToken != nil else {
+            return false
+        }
+
+        do {
+            let request = try Api.shared.makeRequest(endpoint: "/api/auth/check", method: "GET")
+            let (_, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
                 return false
             }
 
-            do {
-                let request = try Api.shared.makeRequest(endpoint: "/api/auth/check", method: "GET")
-                let (_, response) = try await URLSession.shared.data(for: request)
-                
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
-                    return false
-                }
-                return true
-            } catch {
-                return false
-            }
+            return true
+        } catch {
+            return false
         }
-    
-    
-    /// Exemple de vérification (facultative)
+    }
+
+    /// Vérifie simplement si un token JWT est enregistré localement
     func isAuthenticated() -> Bool {
         return Api.shared.authToken != nil
     }

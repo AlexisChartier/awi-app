@@ -12,78 +12,87 @@ struct GameSaleView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                // 🧾 Messages
+            VStack(spacing: 8) {
+                // Messages
                 if let err = vm.errorMessage {
                     Text(err).foregroundColor(.red).padding()
                 }
                 if let succ = vm.successMessage {
                     Text(succ).foregroundColor(.green).padding()
                 }
-
-                // 🔍 Filtres
+                
+                // Filtres
                 HStack(spacing: 12) {
                     TextField("🎲 Jeu", text: $vm.filterGameName)
                         .textFieldStyle(.roundedBorder)
                     TextField("📦 Code-barres", text: $vm.filterBarcode)
                         .textFieldStyle(.roundedBorder)
-
+                    
                     Spacer()
-
+                    
                     Button {
                         showCartSheet = true
                     } label: {
-                        Label("Voir Panier", systemImage: "cart")
+                        Label("Panier", systemImage: "cart")
                     }
                     .buttonStyle(.bordered)
                 }
                 .padding(.horizontal)
-
+                
                 if vm.loading {
                     Spacer()
                     ProgressView("Chargement...")
                     Spacer()
                 } else {
-                    // 🎮 Liste des produits en vente
-                    ScrollView {
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
-                            ForEach(vm.sortedDepots, id: \.depot_jeu_id) { depot in
-                                let game = vm.allGames.first(where: { $0.id == depot.jeu_id })
-                                let vendor = vm.allVendors.first(where: { $0.id == depot.vendeur_id })
-
-                                ProductCardView(
-                                    depot: depot,
-                                    gameName: game?.nom ?? "Jeu inconnu",
-                                    vendorName: vendor?.nom ?? "Vendeur inconnu",
-                                    imageUrl: game?.image ?? "",
-                                    onAddToCart: { vm.addToCart(depot) },
-                                    onGenerateBarcode: {
-                                        vm.generateBarcode(depot)
-                                    }
-                                )
+                    // Liste des produits en vente
+                    ZStack{
+                        LinearGradient(
+                            colors: [Color.cyan, Color.purple],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .ignoresSafeArea()
+                        .cornerRadius(AppTheme.cornerRadius)
+                        ScrollView {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                                ForEach(vm.sortedDepots, id: \.depot_jeu_id) { depot in
+                                    let game = vm.allGames.first(where: { $0.id == depot.jeu_id })
+                                    let vendor = vm.allVendors.first(where: { $0.id == depot.vendeur_id })
+                                    
+                                    ProductCardView(
+                                        depot: depot,
+                                        gameName: game?.nom ?? "Jeu inconnu",
+                                        vendorName: vendor?.nom ?? "Vendeur inconnu",
+                                        imageUrl: game?.image ?? "",
+                                        onAddToCart: { vm.addToCart(depot) },
+                                        onGenerateBarcode: {
+                                            vm.generateBarcode(depot)
+                                        }
+                                    )
+                                }
                             }
+                            .padding()
+                        }
+                    }
+                    
+                    // Bouton bas de page
+                    if !vm.cart.isEmpty {
+                        Button {
+                            showCartSheet = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "cart.fill")
+                                Text("Finaliser la vente (\(vm.cart.count) articles - \(vm.totalSalePrice, format: .number)€)")
+                            }
+                            .frame(maxWidth: .infinity)
                         }
                         .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                        .padding(.bottom, 8)
                     }
-                }
-
-                // 🧾 Bouton bas de page
-                if !vm.cart.isEmpty {
-                    Button {
-                        showCartSheet = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "cart.fill")
-                            Text("Finaliser la vente (\(vm.cart.count) articles - \(vm.totalSalePrice, format: .number)€)")
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .padding()
-                    .background(Color.blue)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
                 }
             }
             .navigationTitle("Ventes")
@@ -123,7 +132,7 @@ struct BuyerSelectionSheet: View {
                 }
 
                 if invoiceNeeded {
-                    // 🔍 RECHERCHE
+                    // RECHERCHE
                     Section(header: Text("Recherche acheteur")) {
                         HStack {
                             TextField("Email", text: $emailSearch)
@@ -148,7 +157,7 @@ struct BuyerSelectionSheet: View {
                         }
                     }
 
-                    // ➕ CRÉATION
+                    // CRÉATION
                     Section(header: Text("Créer un acheteur")) {
                         TextField("Nom", text: $nom)
                         TextField("Email", text: $email)
@@ -178,7 +187,7 @@ struct BuyerSelectionSheet: View {
                     }
                 }
 
-                // ✅ CONFIRM / ❌ ANNULER
+                // CONFIRMER / ANNULER
                 Section {
                     Button("✅ Confirmer vente") {
                         vm.needInvoice = invoiceNeeded

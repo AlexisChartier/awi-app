@@ -5,75 +5,45 @@
 //  Created by etud on 17/03/2025.
 //
 
-
 import Foundation
 
+/// Gère les utilisateurs : création, mise à jour, suppression, listing.
 class UserService {
     static let shared = UserService()
     private init() {}
 
-    /// Récupérer tous les utilisateurs
+    /// Récupère tous les utilisateurs.
     func fetchAllUsers() async throws -> [Utilisateur] {
-        // GET /utilisateurs
         let request = try Api.shared.makeRequest(endpoint: "/api/utilisateurs", method: "GET")
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
 
-        // Si le back renvoie { utilisateurs: [...] }
         struct UsersResponse: Codable {
             let utilisateurs: [Utilisateur]
         }
 
-        let decoded = try JSONDecoder().decode(UsersResponse.self, from: data)
-        // Si au contraire le back renvoie directement un tableau,
-        // remplacez par:
-        // let decoded = try JSONDecoder().decode([Utilisateur].self, from: data)
-        // return decoded
-        return decoded.utilisateurs
+        return try JSONDecoder().decode(UsersResponse.self, from: data).utilisateurs
     }
 
-    /// Créer un nouvel utilisateur
+    /// Crée un nouvel utilisateur.
     func createUser(_ data: Utilisateur) async throws -> Utilisateur {
         let body = try JSONEncoder().encode(data)
-        let request = try Api.shared.makeRequest(
-            endpoint: "/api/utilisateurs",
-            method: "POST",
-            body: body
-        )
+        let request = try Api.shared.makeRequest(endpoint: "/api/utilisateurs", method: "POST", body: body)
 
         let (resData, response) = try await URLSession.shared.data(for: request)
+
         guard let httpResponse = response as? HTTPURLResponse else {
             throw URLError(.badServerResponse)
         }
 
-        if !(200...299).contains(httpResponse.statusCode) {
-            // Essayons de décoder un JSON d’erreur
-            if let errorJSON = try? JSONSerialization.jsonObject(with: resData) as? [String: Any],
-               let errorMessage = errorJSON["message"] as? String {
-                // Par exemple on lance une erreur Swift plus explicite
-                print(errorMessage)
-                print(httpResponse)
-            } else {
-                // Sinon on lève juste l’erreur standard
-                throw URLError(.badServerResponse)
-            }
-        }
-        print("test")
-        print(httpResponse)
-        // Le back renvoie:
-        // {
-        //   "message": "Utilisateur créé avec succès.",
-        //   "utilisateur": { ... }
-        // }
         struct CreateUserResponse: Codable {
             let message: String
             let utilisateur: CreatedUser
         }
-        
+
         struct CreatedUser: Codable {
             let utilisateur_id: Int
             let nom: String
@@ -81,74 +51,67 @@ class UserService {
             let role: String
         }
 
-
         let decoded = try JSONDecoder().decode(CreateUserResponse.self, from: resData)
-        let newUser = decoded.utilisateur
-        let u = Utilisateur(id: newUser.utilisateur_id, nom: newUser.nom, email: newUser.email, role: UserRole(rawValue: newUser.role) ?? UserRole.manager)
+        let u = Utilisateur(
+            id: decoded.utilisateur.utilisateur_id,
+            nom: decoded.utilisateur.nom,
+            email: decoded.utilisateur.email,
+            role: UserRole(rawValue: decoded.utilisateur.role) ?? .manager
+        )
         return u
     }
 
-
-    /// Mettre à jour un utilisateur
+    /// Met à jour les infos d’un utilisateur.
     func updateUser(id: Int, data: Utilisateur) async throws -> Utilisateur {
         var bodyDict: [String: Any] = [
             "nom": data.nom,
             "email": data.email,
-            "telephone": data.telephone!,
-            "login": data.login!,
+            "telephone": data.telephone ?? "",
+            "login": data.login ?? "",
             "role": data.role.rawValue
         ]
 
         if let mdp = data.motDePasse, !mdp.isEmpty {
             bodyDict["mot_de_passe"] = mdp
         }
-        
+
         let body = try JSONSerialization.data(withJSONObject: bodyDict, options: [])
-        if let jsonString = String(data: body, encoding: .utf8) {
-            print("📤 Body JSON envoyé :\n\(jsonString)")
-        } else {
-            print("⚠️ Impossible de convertir le body en string")
-        }
 
-        // PUT /utilisateurs/:id
-        //let body = try JSONEncoder().encode(data)
         let request = try Api.shared.makeRequest(endpoint: "/api/utilisateurs/\(id)", method: "PUT", body: body)
-
         let (resData, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
+
+        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
             throw URLError(.badServerResponse)
         }
-        print(httpResponse)
 
-        // Si le back renvoie { utilisateur: {...} }
         struct UpdateUserResponse: Codable {
             let message: String
             let utilisateur: UpdatedUser
         }
-        
+
         struct UpdatedUser: Codable {
             let utilisateur_id: Int
             let nom: String
             let email: String
             let role: String
         }
+
         let decoded = try JSONDecoder().decode(UpdateUserResponse.self, from: resData)
-        let updatedUser = decoded.utilisateur
-        let u = Utilisateur(id: updatedUser.utilisateur_id, nom: updatedUser.nom, email: updatedUser.email, role: UserRole(rawValue: updatedUser.role) ?? UserRole.manager)
-        return u
+        return Utilisateur(
+            id: decoded.utilisateur.utilisateur_id,
+            nom: decoded.utilisateur.nom,
+            email: decoded.utilisateur.email,
+            role: UserRole(rawValue: decoded.utilisateur.role) ?? .manager
+        )
     }
 
-    /// Supprimer un utilisateur
+    /// Supprime un utilisateur.
     func deleteUser(id: Int) async throws {
-        // DELETE /utilisateurs/:id
         let request = try Api.shared.makeRequest(endpoint: "/api/utilisateurs/\(id)", method: "DELETE")
         let (_, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
+        guard let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) else {
             throw URLError(.badServerResponse)
         }
-        // Pas de retour particulier
     }
 }

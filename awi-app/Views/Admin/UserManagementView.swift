@@ -13,7 +13,7 @@ struct UserManagementView: View {
         NavigationStack {
             VStack(spacing: 0) {
 
-                // ⚠️ Message d'erreur
+                // Message d'erreur
                 if let err = vm.errorMessage {
                     HStack {
                         Label(err, systemImage: "exclamationmark.triangle.fill")
@@ -38,7 +38,7 @@ struct UserManagementView: View {
                     Spacer()
                 } else {
                     VStack(spacing: 16) {
-                        // 🧭 Barre haute
+                        // Barre haute
                         HStack {
                             Text("👥 \(vm.utilisateurs.count) utilisateur(s)")
                                 .font(.headline)
@@ -52,7 +52,7 @@ struct UserManagementView: View {
                         }
                         .padding(.horizontal)
 
-                        // 📋 Liste utilisateurs
+                        // Liste utilisateurs
                         List {
                             ForEach(vm.utilisateurs, id: \.id) { user in
                                 VStack(alignment: .leading, spacing: 4) {

@@ -4,14 +4,16 @@
 //
 //  Created by etud on 17/03/2025.
 //
+
 import SwiftUI
 
+/// ViewModel responsable de la gestion du catalogue de jeux (filtrage, tri, pagination, création...).
 @MainActor
 class CatalogViewModel: ObservableObject {
     @Published var jeux: [Jeu] = []
     @Published var searchTerm: String = ""
     @Published var filterEditeur: String = ""
-    @Published var sortKey: SortKey? = .nom // 🔥 tri alphabétique par défaut
+    @Published var sortKey: SortKey? = .nom
     @Published var sortAsc: Bool = true
 
     @Published var selectedGames: Set<Int> = []
@@ -22,33 +24,35 @@ class CatalogViewModel: ObservableObject {
     @Published var currentPage: Int = 0
     let itemsPerPage = 8
 
-    // Création / Édition
+    // Formulaire de création/édition
     @Published var showFormDialog = false
     @Published var isEditMode = false
     @Published var currentGame: Jeu? = nil
 
-    // Suppression individuelle
+    // Suppression
     @Published var showDeleteDialog = false
     @Published var gameToDelete: Jeu? = nil
 
-    // CSV Import
+    // Import CSV
     @Published var csvFileData: Data? = nil
-    
+
+    // Détail
     @Published var showDetailSheet = false
     @Published var detailGame: Jeu? = nil
 
-    // Tri possible
+    /// Clés disponibles pour le tri du catalogue
     enum SortKey {
         case nom, auteur, editeur
     }
 
+    /// Charge tous les jeux du backend
     func loadGames() {
         isLoading = true
         Task {
             do {
                 let fetched = try await JeuService.shared.getAllJeux()
                 self.jeux = fetched
-                self.sortKey = .nom       // tri par défaut
+                self.sortKey = .nom
                 self.sortAsc = true
             } catch {
                 self.errorMessage = "Erreur chargement catalogue: \(error)"
@@ -57,12 +61,10 @@ class CatalogViewModel: ObservableObject {
         }
     }
 
-
-    // Filtrage
+    /// Applique le filtrage par nom, auteur ou éditeur
     var filteredJeux: [Jeu] {
-        // Aucun filtre → retourner tous les jeux
         if searchTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-            filterEditeur.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+           filterEditeur.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return jeux
         }
 
@@ -80,11 +82,11 @@ class CatalogViewModel: ObservableObject {
         }
     }
 
-
-    // Tri
+    /// Applique le tri en fonction du champ sélectionné
     var sortedJeux: [Jeu] {
         var array = filteredJeux
         guard let sk = sortKey else { return array }
+
         array.sort {
             let strA: String
             let strB: String
@@ -99,21 +101,19 @@ class CatalogViewModel: ObservableObject {
                 strA = $0.editeur?.lowercased() ?? ""
                 strB = $1.editeur?.lowercased() ?? ""
             }
-            if sortAsc {
-                return strA < strB
-            } else {
-                return strA > strB
-            }
+            return sortAsc ? strA < strB : strA > strB
         }
+
         return array
     }
 
-    // Pagination
+    /// Nombre de pages disponibles
     var totalPages: Int {
         let c = sortedJeux.count
         return c == 0 ? 1 : Int(ceil(Double(c) / Double(itemsPerPage)))
     }
 
+    /// Jeux affichés à la page actuelle
     var pageJeux: [Jeu] {
         let start = currentPage * itemsPerPage
         guard start < sortedJeux.count else { return [] }
@@ -133,7 +133,7 @@ class CatalogViewModel: ObservableObject {
         }
     }
 
-    // Sélection
+    /// Ajoute ou retire un jeu de la sélection multiple
     func toggleSelectGame(_ jeuId: Int) {
         if selectedGames.contains(jeuId) {
             selectedGames.remove(jeuId)
@@ -141,11 +141,13 @@ class CatalogViewModel: ObservableObject {
             selectedGames.insert(jeuId)
         }
     }
+
+    /// Supprime tous les jeux sélectionnés
     func deleteSelectedGames() {
         Task {
             do {
                 for jeuId in selectedGames {
-                    try await JeuService.shared.delete(id:jeuId)
+                    try await JeuService.shared.delete(id: jeuId)
                 }
                 loadGames()
                 selectedGames.removeAll()
@@ -155,20 +157,22 @@ class CatalogViewModel: ObservableObject {
         }
     }
 
-    // Individuelle
+    // Suppression individuelle
     func openDeleteDialog(_ jeu: Jeu) {
         gameToDelete = jeu
         showDeleteDialog = true
     }
+
     func closeDeleteDialog() {
         showDeleteDialog = false
         gameToDelete = nil
     }
+
     func confirmDeleteGame() {
         guard let toDel = gameToDelete, let jid = toDel.id else { return }
         Task {
             do {
-                try await JeuService.shared.delete(id:jid)
+                try await JeuService.shared.delete(id: jid)
                 loadGames()
             } catch {
                 errorMessage = "Erreur suppression jeu"
@@ -177,7 +181,7 @@ class CatalogViewModel: ObservableObject {
         }
     }
 
-    // Création / Édition
+    // Formulaire
     func openCreateDialog() {
         isEditMode = false
         currentGame = Jeu(
@@ -204,24 +208,20 @@ class CatalogViewModel: ObservableObject {
         detailGame = jeu
         showDetailSheet = true
     }
+
     func closeDetailDialog() {
         showDetailSheet = false
         detailGame = nil
     }
+
     func saveGame(_ newGame: Jeu, imageFile: Data?) {
         Task {
             do {
                 if isEditMode, let jid = newGame.id {
-                    // Update
-                    _ = try await JeuService.shared.update(id:jid, data:newGame)
+                    _ = try await JeuService.shared.update(id: jid, data: newGame)
                 } else {
-                    // Create
-                    if let fileData = imageFile {
-                        // createWithImage => FormData
-                        // vous devrez adapter si votre code stocke un Data ou un UIImage
-                        // Cf. Swift concurrency + multipart...
-                        // On simplifie l'exemple
-                        //try await JeuService.shared.createWithImage(newGame, imageData: fileData)
+                    if let _ = imageFile {
+                        // à implémenter : JeuService.shared.createWithImage(...)
                     } else {
                         _ = try await JeuService.shared.create(data: newGame)
                     }
@@ -238,7 +238,7 @@ class CatalogViewModel: ObservableObject {
     func importCsv(_ data: Data) {
         Task {
             do {
-                //try await JeuService.shared.importCsv(csvData: data, fileName: <#String#>)
+                // À implémenter : importCsv(csvData: data)
                 loadGames()
             } catch {
                 errorMessage = "Erreur import CSV"

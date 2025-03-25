@@ -4,30 +4,32 @@
 //
 //  Created by etud on 17/03/2025.
 //
+
 import SwiftUI
 
+/// ViewModel dédié à la gestion des acheteurs : création, édition, suppression, recherche.
 @MainActor
 class BuyersViewModel: ObservableObject {
-    // MARK: - Données principales
+    // Liste des acheteurs
     @Published var buyers: [Acheteur] = []
     @Published var loading: Bool = false
     @Published var errorMessage: String?
 
-    // MARK: - Recherche & Pagination
+    // Recherche & pagination
     @Published var searchTerm: String = ""
     @Published var currentPage: Int = 1
     private let pageSize: Int = 10
 
-    // MARK: - Création / Édition
+    // Formulaire d'édition / création
     @Published var isEditMode: Bool = false
     @Published var currentBuyer: Acheteur = Acheteur(id: 0, nom: "", email: nil, telephone: nil, adresse: nil)
     @Published var showFormSheet: Bool = false
 
-    // MARK: - Suppression
+    // Suppression
     @Published var showDeleteConfirm: Bool = false
     @Published var buyerToDelete: Acheteur?
 
-    // MARK: - Chargement initial
+    /// Charge tous les acheteurs depuis l’API.
     func loadBuyers() {
         loading = true
         Task {
@@ -35,21 +37,19 @@ class BuyersViewModel: ObservableObject {
                 let fetched = try await AcheteurService.shared.fetchAllAcheteurs()
                 buyers = fetched
             } catch {
-                print(error)
                 errorMessage = "Erreur lors du chargement des acheteurs: \(error)"
             }
             loading = false
         }
     }
 
-    // MARK: - Création
+    /// Crée un nouvel acheteur.
     func createBuyer(nom: String, email: String?, telephone: String?, adresse: String?) {
         loading = true
         Task {
             do {
                 let newBuyer = Acheteur(id: 0, nom: nom, email: email, telephone: telephone, adresse: adresse)
-                let _ = try await AcheteurService.shared.createAcheteur(newBuyer)
-                // Après création, on recharge la liste pour rester cohérent
+                _ = try await AcheteurService.shared.createAcheteur(newBuyer)
                 loadBuyers()
             } catch {
                 errorMessage = "Erreur lors de la création de l'acheteur: \(error)"
@@ -58,13 +58,12 @@ class BuyersViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Édition
+    /// Met à jour un acheteur existant.
     func updateBuyer(buyer: Acheteur) {
         loading = true
         Task {
             do {
                 let updated = try await AcheteurService.shared.updateAcheteur(buyer)
-                // On met à jour localement l'acheteur
                 if let index = buyers.firstIndex(where: { $0.id == updated.id }) {
                     buyers[index] = updated
                 }
@@ -75,14 +74,13 @@ class BuyersViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Suppression
+    /// Supprime un acheteur.
     func deleteBuyer() {
         guard let buyerToDelete = buyerToDelete else { return }
         loading = true
         Task {
             do {
                 try await AcheteurService.shared.deleteAcheteur(id: buyerToDelete.id)
-                // Retrait local après suppression
                 buyers.removeAll { $0.id == buyerToDelete.id }
                 self.buyerToDelete = nil
                 self.showDeleteConfirm = false
@@ -93,7 +91,7 @@ class BuyersViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Recherche
+    /// Retourne les acheteurs filtrés par nom ou email.
     var filteredBuyers: [Acheteur] {
         let lowerSearch = searchTerm.lowercased()
         guard !lowerSearch.isEmpty else { return buyers }
@@ -103,12 +101,13 @@ class BuyersViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Pagination
+    /// Nombre total de pages disponibles.
     var totalPages: Int {
         let count = filteredBuyers.count
         return count == 0 ? 1 : Int(ceil(Double(count) / Double(pageSize)))
     }
 
+    /// Retourne les acheteurs de la page active.
     var paginatedBuyers: [Acheteur] {
         let startIndex = (currentPage - 1) * pageSize
         if startIndex >= filteredBuyers.count { return [] }
@@ -116,27 +115,31 @@ class BuyersViewModel: ObservableObject {
         return Array(filteredBuyers[startIndex..<endIndex])
     }
 
+    /// Accède à une page donnée.
     func goToPage(_ page: Int) {
         currentPage = max(1, min(page, totalPages))
     }
 
-    // MARK: - Formulaire
+    /// Ouvre le formulaire pour créer un acheteur.
     func openCreateForm() {
         isEditMode = false
         currentBuyer = Acheteur(id: 0, nom: "", email: nil, telephone: nil, adresse: nil)
         showFormSheet = true
     }
 
+    /// Ouvre le formulaire pour modifier un acheteur.
     func openEditForm(buyer: Acheteur) {
         isEditMode = true
         currentBuyer = buyer
         showFormSheet = true
     }
 
+    /// Ferme le formulaire sans sauvegarde.
     func closeForm() {
         showFormSheet = false
     }
 
+    /// Enregistre l'acheteur courant (création ou mise à jour).
     func saveBuyerForm() {
         if isEditMode {
             updateBuyer(buyer: currentBuyer)

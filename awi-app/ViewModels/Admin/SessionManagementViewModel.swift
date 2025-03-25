@@ -7,21 +7,24 @@
 
 import SwiftUI
 
+/// ViewModel dédié à la gestion des sessions dans l'interface d'administration.
+/// Permet de charger, créer, modifier et supprimer des sessions.
 @MainActor
 class SessionManagementViewModel: ObservableObject {
+    // Liste des sessions
     @Published var sessions: [Session] = []
     @Published var errorMessage: String?
     @Published var loading = false
 
-    // Dialogs
+    // États de dialogues/formulaires
     @Published var showFormSheet = false
     @Published var isEditMode = false
     @Published var currentSession: Session?
-    
+
     @Published var showDeleteDialog = false
     @Published var sessionToDelete: Session?
 
-    // Champs qu’on va binder dans le formulaire
+    // Champs liés au formulaire d'édition/création
     @Published var formNom: String = ""
     @Published var formDateDebut: Date = Date()
     @Published var formDateFin: Date = Date()
@@ -29,9 +32,10 @@ class SessionManagementViewModel: ObservableObject {
     @Published var formModeFrais: String = "fixe"
     @Published var formFrais: Double = 0
     @Published var formCommission: Double = 0
-    
+
     var selectedSession: Session?
 
+    /// Charge toutes les sessions depuis le backend
     func loadSessions() {
         loading = true
         Task {
@@ -45,11 +49,11 @@ class SessionManagementViewModel: ObservableObject {
         }
     }
 
+    /// Prépare le formulaire pour une création
     func openCreateSheet() {
         isEditMode = false
         currentSession = nil
-        
-        // On ré-initialise les champs du formulaire
+
         formNom = ""
         formDateDebut = Date()
         formDateFin = Date()
@@ -57,30 +61,33 @@ class SessionManagementViewModel: ObservableObject {
         formModeFrais = "fixe"
         formFrais = 0
         formCommission = 0
-        
+
         showFormSheet = true
     }
 
+    /// Prépare le formulaire pour une édition
     func openEditSheet(_ sess: Session) {
         isEditMode = true
         currentSession = sess
-        
+
         formNom = sess.nom ?? ""
         formDateDebut = sess.dateDebut
-        formDateFin   = sess.dateFin
-        formStatut    = sess.statut
+        formDateFin = sess.dateFin
+        formStatut = sess.statut
         formModeFrais = sess.modeFraisDepot
-        formFrais     = sess.fraisDepot
+        formFrais = sess.fraisDepot
         formCommission = sess.commissionRate
-        
+
         showFormSheet = true
     }
 
+    /// Ferme le formulaire d'édition/création
     func closeFormSheet() {
         showFormSheet = false
         errorMessage = nil
     }
 
+    /// Sauvegarde une session (création ou mise à jour)
     func saveSession() {
         if isEditMode, let s = currentSession {
             // Mise à jour
@@ -104,14 +111,13 @@ class SessionManagementViewModel: ObservableObject {
                     showFormSheet = false
                 } catch {
                     self.errorMessage = "Erreur enregistrement session"
-                    print(error)
                 }
             }
         } else {
             // Création
             Task {
                 do {
-                    let _ = try await SessionService.shared.create(
+                    _ = try await SessionService.shared.create(
                         data: Session(
                             id: 0,
                             nom: formNom,
@@ -133,14 +139,19 @@ class SessionManagementViewModel: ObservableObject {
         }
     }
 
+    /// Ouvre la boîte de dialogue de confirmation de suppression
     func openDeleteDialog(_ sess: Session) {
         sessionToDelete = sess
         showDeleteDialog = true
     }
+
+    /// Ferme la boîte de dialogue de suppression
     func closeDeleteDialog() {
         sessionToDelete = nil
         showDeleteDialog = false
     }
+
+    /// Confirme la suppression d’une session
     func confirmDelete() {
         guard let sdel = sessionToDelete else { return }
         Task {
